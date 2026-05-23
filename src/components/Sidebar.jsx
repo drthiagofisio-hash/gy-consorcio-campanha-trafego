@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import {
   LayoutDashboard, BarChart2, FileText, Image, Upload, Settings,
-  ChevronLeft, ChevronRight, CalendarDays, TrendingUp
+  ChevronLeft, ChevronRight, CalendarDays, TrendingUp, BookOpen
 } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { id: 'dashboard',   label: 'Dashboard',     icon: LayoutDashboard },
-  { id: 'campanhas',   label: 'Campanhas',      icon: BarChart2 },
-  { id: 'anuncios',    label: 'Anúncios',       icon: FileText },
-  { id: 'criativos',   label: 'Criativos',      icon: Image },
-  { id: 'semanal',     label: 'Comparativo',    icon: TrendingUp },
-  { id: 'importar',    label: 'Importar CSV',   icon: Upload },
-  { id: 'configuracoes', label: 'Configurações', icon: Settings },
+  { id: 'dashboard',    label: 'Dashboard',      icon: LayoutDashboard },
+  { id: 'campanhas',    label: 'Campanhas',       icon: BarChart2 },
+  { id: 'anuncios',     label: 'Anúncios',        icon: FileText },
+  { id: 'criativos',    label: 'Criativos',       icon: Image },
+  { id: 'semanal',      label: 'Comparativo',     icon: TrendingUp },
+  { id: 'importar',     label: 'Importar CSV',    icon: Upload },
+  { id: 'guia',         label: 'Guia de Nomes',   icon: BookOpen, destaque: true },
+  { id: 'configuracoes', label: 'Configurações',  icon: Settings },
 ];
 
 export function Sidebar({ activePage, onPageChange }) {
@@ -63,12 +64,17 @@ export function Sidebar({ activePage, onPageChange }) {
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
                 active
                   ? 'bg-blue-600 text-white shadow'
+                  : item.destaque
+                  ? 'text-amber-300 hover:bg-amber-500/20 hover:text-amber-200'
                   : 'text-slate-400 hover:bg-slate-800 hover:text-white'
               } ${collapsed ? 'justify-center' : ''}`}
               title={collapsed ? item.label : undefined}
             >
               <Icon size={18} className="flex-shrink-0" />
               {!collapsed && <span className="truncate">{item.label}</span>}
+              {!collapsed && item.destaque && !active && (
+                <span className="ml-auto text-xs bg-amber-500/30 text-amber-300 px-1.5 py-0.5 rounded font-semibold">novo</span>
+              )}
             </button>
           );
         })}

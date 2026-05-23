@@ -8,6 +8,7 @@ import { CreativesMap } from './components/Creatives/CreativesMap';
 import { WeeklyComparison } from './components/Weekly/WeeklyComparison';
 import { ImportCSV } from './components/Import/ImportCSV';
 import { Settings } from './components/Settings/Settings';
+import { NamingGuide } from './components/Guide/NamingGuide';
 
 const PAGES = {
   dashboard:    Dashboard,
@@ -16,6 +17,7 @@ const PAGES = {
   criativos:    CreativesMap,
   semanal:      WeeklyComparison,
   importar:     ImportCSV,
+  guia:         NamingGuide,
   configuracoes: Settings,
 };
 
