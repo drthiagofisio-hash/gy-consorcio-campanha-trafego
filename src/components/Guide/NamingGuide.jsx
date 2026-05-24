@@ -486,20 +486,50 @@ export function NamingGuide() {
                   <th className="px-4 py-3 text-left font-semibold text-gray-600">Campanha</th>
                   <th className="px-4 py-3 text-left font-semibold text-gray-600">Nome sugerido para o Conjunto</th>
                   <th className="px-4 py-3 text-left font-semibold text-gray-600">Segmentação</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Vídeos recomendados</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {CAMPANHAS.map(camp => (
-                  <tr key={camp.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <span className="text-xs font-mono font-semibold text-gray-700">{camp.nome}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <CopyCell value={`${camp.id}_Conjunto`} />
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-500 max-w-xs">{camp.segmentacao}</td>
-                  </tr>
-                ))}
+                {CAMPANHAS.map(camp => {
+                  const conv = CONVENCAO_ANUNCIO.find(c => c.campanha === camp.id);
+                  return (
+                    <tr key={camp.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 align-top">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs font-mono font-semibold text-gray-700">{camp.nome}</span>
+                          <div className="flex items-center gap-1">
+                            <FluxoBadge fluxo={camp.fluxo} />
+                            <TempBadge temperatura={camp.temperatura} />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <CopyCell value={`${camp.id}_Conjunto`} />
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-500 max-w-xs align-top">{camp.segmentacao}</td>
+                      <td className="px-4 py-3 align-top">
+                        {conv ? (
+                          <div className="flex flex-wrap gap-1">
+                            {conv.videosRecomendados.map(vid => {
+                              const video = VIDEOS.find(v => v.id === vid);
+                              return (
+                                <span
+                                  key={vid}
+                                  className="text-xs bg-purple-50 text-purple-700 border border-purple-200 rounded px-1.5 py-0.5 font-semibold"
+                                  title={video?.nome}
+                                >
+                                  {vid}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
