@@ -203,6 +203,7 @@ function saveToStorage(data) {
 export function AppProvider({ children }) {
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [segmentacao, setSegmentacao] = useState(DEFAULT_SEGMENTACAO);
+  const [campanhasOcultas, setCampanhasOcultas] = useState([]);
   const [weeklyData, setWeeklyData] = useState(EMPTY_WEEKLY_DATA);
   const [imports, setImports] = useState([]);
   const [activeWeek, setActiveWeek] = useState(1);
@@ -218,13 +219,14 @@ export function AppProvider({ children }) {
       if (stored.weeklyData && Object.keys(stored.weeklyData).length > 0) setWeeklyData(stored.weeklyData);
       if (stored.imports) setImports(stored.imports);
       if (stored.segmentacao) setSegmentacao(stored.segmentacao);
+      if (stored.campanhasOcultas) setCampanhasOcultas(stored.campanhasOcultas);
     }
   }, []);
 
   // Persiste no localStorage sempre que muda
   useEffect(() => {
-    saveToStorage({ config, weeklyData, imports, segmentacao });
-  }, [config, weeklyData, imports, segmentacao]);
+    saveToStorage({ config, weeklyData, imports, segmentacao, campanhasOcultas });
+  }, [config, weeklyData, imports, segmentacao, campanhasOcultas]);
 
   const updateConfig = useCallback((updates) => {
     setConfig(prev => ({ ...prev, ...updates }));
@@ -232,6 +234,14 @@ export function AppProvider({ children }) {
 
   const updateSegmentacao = useCallback((nova) => {
     setSegmentacao(nova);
+  }, []);
+
+  const ocultarCampanhas = useCallback((nomes) => {
+    setCampanhasOcultas(prev => [...new Set([...prev, ...nomes])]);
+  }, []);
+
+  const restaurarCampanhas = useCallback((nomes) => {
+    setCampanhasOcultas(prev => prev.filter(n => !nomes.includes(n)));
   }, []);
 
   const importWeekData = useCallback((week, rows, filename) => {
@@ -254,6 +264,7 @@ export function AppProvider({ children }) {
     setImports(MOCK_IMPORTS);
     setConfig(DEFAULT_CONFIG);
     setSegmentacao(DEFAULT_SEGMENTACAO);
+    setCampanhasOcultas([]);
   }, []);
 
   const value = {
@@ -261,6 +272,9 @@ export function AppProvider({ children }) {
     updateConfig,
     segmentacao,
     updateSegmentacao,
+    campanhasOcultas,
+    ocultarCampanhas,
+    restaurarCampanhas,
     weeklyData,
     imports,
     importWeekData,

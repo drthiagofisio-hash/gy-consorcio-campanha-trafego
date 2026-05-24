@@ -4,7 +4,7 @@ import { agregarPorCampanha, calcularStatus, calcularResumo, filtrarRows, fmtBRL
 import { SortableTable } from '../ui/SortableTable';
 import { TempBadge, FluxoBadge, StatusBadge } from '../ui/Badge';
 import { Tooltip } from '../ui/Tooltip';
-import { Download } from 'lucide-react';
+import { Download, EyeOff, Eye, RotateCcw } from 'lucide-react';
 import { FLUXOS } from '../../data/campaigns';
 
 function exportCSV(data) {
@@ -27,26 +27,106 @@ function exportCSV(data) {
 }
 
 export function CampaignReport() {
-  const { weeklyData, activeWeek, setActiveWeek, activeFluxo, setActiveFluxo, activeTemp, setActiveTemp, config } = useApp();
+  const {
+    weeklyData, activeWeek, setActiveWeek, activeFluxo, setActiveFluxo,
+    activeTemp, setActiveTemp, config,
+    campanhasOcultas, ocultarCampanhas, restaurarCampanhas,
+  } = useApp();
 
+  const [selected, setSelected] = useState(new Set());
+  const [mostrarOcultas, setMostrarOcultas] = useState(false);
+
+  // ── Linhas brutas da semana ──────────────────────────────────
   const rows = useMemo(() => weeklyData[activeWeek] || [], [weeklyData, activeWeek]);
-  const filteredRows = useMemo(() => filtrarRows(rows, activeFluxo, activeTemp), [rows, activeFluxo, activeTemp]);
+
+  // ── Remove campanhas ocultas (exceto quando gerenciando) ─────
+  const rowsVisiveis = useMemo(() => {
+    if (mostrarOcultas) return rows;
+    const ocultas = new Set(campanhasOcultas);
+    return rows.filter(r => !ocultas.has(r.campaignName) && !ocultas.has(r.campaignId));
+  }, [rows, campanhasOcultas, mostrarOcultas]);
+
+  const filteredRows = useMemo(
+    () => filtrarRows(rowsVisiveis, activeFluxo, activeTemp),
+    [rowsVisiveis, activeFluxo, activeTemp]
+  );
   const resumo = useMemo(() => calcularResumo(filteredRows), [filteredRows]);
 
   const campanhaData = useMemo(() => {
     const aggr = agregarPorCampanha(filteredRows, config.adVideoMap);
     const mediaCpl = resumo?.cplMedio || 0;
-    const mediaLeads = aggr.length > 0 ? aggr.reduce((s, c) => s + (c.leads + c.conversations), 0) / aggr.length : 0;
+    const mediaLeads = aggr.length > 0
+      ? aggr.reduce((s, c) => s + (c.leads + c.conversations), 0) / aggr.length
+      : 0;
     return aggr.map(c => {
       const cplEfetivo = c.costPerLead || c.costPerConversation;
-      return { ...c, status: calcularStatus(cplEfetivo, mediaCpl, c.frequency, c.ctr, c.leads + c.conversations, mediaLeads) };
+      return {
+        ...c,
+        oculta: campanhasOcultas.includes(c.campaignName) || campanhasOcultas.includes(c.campaignId),
+        status: calcularStatus(cplEfetivo, mediaCpl, c.frequency, c.ctr, c.leads + c.conversations, mediaLeads),
+      };
     });
-  }, [filteredRows, config.adVideoMap, resumo]);
+  }, [filteredRows, config.adVideoMap, resumo, campanhasOcultas]);
 
+  // ── Seleção ──────────────────────────────────────────────────
+  const toggleSelect = (nome) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(nome) ? next.delete(nome) : next.add(nome);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selected.size === campanhaData.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(campanhaData.map(c => c.campaignName)));
+    }
+  };
+
+  const handleOcultar = () => {
+    ocultarCampanhas([...selected]);
+    setSelected(new Set());
+  };
+
+  const handleRestaurarTodas = () => {
+    restaurarCampanhas(campanhasOcultas);
+    setMostrarOcultas(false);
+  };
+
+  // ── Colunas da tabela ────────────────────────────────────────
   const columns = [
     {
+      key: '__check__',
+      label: (
+        <input
+          type="checkbox"
+          className="accent-blue-600 cursor-pointer"
+          checked={selected.size > 0 && selected.size === campanhaData.length}
+          ref={el => { if (el) el.indeterminate = selected.size > 0 && selected.size < campanhaData.length; }}
+          onChange={toggleSelectAll}
+          title="Selecionar todas"
+        />
+      ),
+      sortable: false,
+      className: 'w-8',
+      render: (_, row) => (
+        <input
+          type="checkbox"
+          className="accent-blue-600 cursor-pointer"
+          checked={selected.has(row.campaignName)}
+          onChange={() => toggleSelect(row.campaignName)}
+        />
+      ),
+    },
+    {
       key: 'campaignName', label: 'Campanha',
-      render: v => <span className="font-medium text-gray-800 text-xs">{v}</span>
+      render: (v, row) => (
+        <span className={`font-medium text-xs ${row.oculta ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
+          {v}
+        </span>
+      ),
     },
     { key: 'fluxo', label: 'Fluxo', sortable: false, render: v => <FluxoBadge fluxo={v} /> },
     { key: 'temperatura', label: 'Temp.', sortable: false, render: v => <TempBadge temperatura={v} /> },
@@ -105,18 +185,40 @@ export function CampaignReport() {
     },
     {
       key: 'status', label: 'Status', sortable: false,
-      render: v => <StatusBadge status={v} />
+      render: (v, row) => row.oculta
+        ? (
+          <button
+            onClick={() => restaurarCampanhas([row.campaignName])}
+            className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700"
+            title="Restaurar campanha"
+          >
+            <RotateCcw size={12} /> Restaurar
+          </button>
+        )
+        : <StatusBadge status={v} />,
     },
   ];
 
   return (
     <div className="p-6 space-y-5">
+      {/* Cabeçalho */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Relatório por Campanha</h1>
-          <p className="text-sm text-gray-500">{campanhaData.length} campanha(s) · Semana {activeWeek}</p>
+          <p className="text-sm text-gray-500">
+            {campanhaData.length} campanha(s) visível(is) · Semana {activeWeek}
+            {campanhasOcultas.length > 0 && (
+              <button
+                onClick={() => setMostrarOcultas(v => !v)}
+                className="ml-2 text-xs text-blue-500 hover:underline"
+              >
+                {mostrarOcultas ? '← Esconder ocultas' : `+ ${campanhasOcultas.length} oculta(s) — Gerenciar`}
+              </button>
+            )}
+          </p>
         </div>
         <div className="flex flex-wrap gap-3">
+          {/* Semanas */}
           <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
             <span className="text-gray-500 font-medium">Semana:</span>
             {[1, 2, 3, 4].map(w => (
@@ -144,6 +246,43 @@ export function CampaignReport() {
           </button>
         </div>
       </div>
+
+      {/* Barra de ações quando há seleção */}
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <span className="text-sm font-semibold text-amber-800">
+            {selected.size} campanha(s) selecionada(s)
+          </span>
+          <button
+            onClick={handleOcultar}
+            className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-semibold"
+          >
+            <EyeOff size={14} /> Ocultar dos relatórios
+          </button>
+          <button
+            onClick={() => setSelected(new Set())}
+            className="text-sm px-3 py-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600"
+          >
+            Cancelar
+          </button>
+        </div>
+      )}
+
+      {/* Aviso modo gerenciar ocultas */}
+      {mostrarOcultas && campanhasOcultas.length > 0 && selected.size === 0 && (
+        <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+          <Eye size={16} className="text-blue-500 shrink-0" />
+          <span className="text-sm text-blue-800">
+            Mostrando <strong>{campanhasOcultas.length}</strong> campanha(s) oculta(s). Clique em <strong>Restaurar</strong> na linha ou:
+          </span>
+          <button
+            onClick={handleRestaurarTodas}
+            className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold ml-auto shrink-0"
+          >
+            <RotateCcw size={13} /> Restaurar todas
+          </button>
+        </div>
+      )}
 
       {/* Legenda de status */}
       <div className="flex flex-wrap gap-3 text-xs">
