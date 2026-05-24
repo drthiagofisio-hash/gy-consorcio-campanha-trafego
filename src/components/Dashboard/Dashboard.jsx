@@ -12,9 +12,14 @@ import { fmtBRL, fmtPct, fmtNum } from '../../utils/calculations';
 import { FLUXOS } from '../../data/campaigns';
 
 export function Dashboard() {
-  const { weeklyData, activeWeek, setActiveWeek, activeFluxo, setActiveFluxo, activeTemp, setActiveTemp, config } = useApp();
+  const { weeklyData, activeWeek, setActiveWeek, activeFluxo, setActiveFluxo, activeTemp, setActiveTemp, config, campanhasOcultas } = useApp();
 
-  const rows = useMemo(() => weeklyData[activeWeek] || [], [weeklyData, activeWeek]);
+  const rows = useMemo(() => {
+    const all = weeklyData[activeWeek] || [];
+    const ocultas = new Set(campanhasOcultas);
+    return all.filter(r => !ocultas.has(r.campaignName) && !ocultas.has(r.campaignId));
+  }, [weeklyData, activeWeek, campanhasOcultas]);
+
   const rowsAnterior = useMemo(() => activeWeek > 1 ? weeklyData[activeWeek - 1] || [] : [], [weeklyData, activeWeek]);
 
   const filteredRows = useMemo(() =>

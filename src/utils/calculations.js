@@ -190,10 +190,26 @@ export function calcularResumo(rows) {
   const taxaMensagemMedia = totalReach > 0 ? (totalConversations / totalReach) * 100 : 0;
   const ctr = totalClicks > 0 && totalReach > 0 ? (totalClicks / totalReach) * 100 : 0;
 
+  // CPL separado: formulário vs WhatsApp
+  const formRows = rows.filter(r => {
+    const campDef = encontrarCampanha(r.campaignName) || CAMPANHAS.find(c => c.id === r.campaignId);
+    return campDef && campDef.fluxo !== 'bittrex';
+  });
+  const waRows = rows.filter(r => {
+    const campDef = encontrarCampanha(r.campaignName) || CAMPANHAS.find(c => c.id === r.campaignId);
+    return campDef?.fluxo === 'bittrex';
+  });
+  const formLeads = formRows.reduce((s, r) => s + (r.leads || 0), 0);
+  const formSpend = formRows.reduce((s, r) => s + (r.spend || 0), 0);
+  const waConversas = waRows.reduce((s, r) => s + (r.conversations || 0), 0);
+  const waSpend = waRows.reduce((s, r) => s + (r.spend || 0), 0);
+  const cplLead = formLeads > 0 ? formSpend / formLeads : null;
+  const cplConversa = waConversas > 0 ? waSpend / waConversas : null;
+
   return {
     totalSpend, totalLeads, totalConversations, totalResults,
-    totalReach, totalClicks, cplMedio, taxaLeadMedia, taxaMensagemMedia, ctr,
-    totalResultadosReais,
+    totalReach, totalClicks, cplMedio, cplLead, cplConversa,
+    taxaLeadMedia, taxaMensagemMedia, ctr, totalResultadosReais,
   };
 }
 

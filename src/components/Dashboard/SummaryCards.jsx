@@ -1,4 +1,4 @@
-import { DollarSign, Users, MessageSquare, TrendingDown, Target, Eye } from 'lucide-react';
+import { DollarSign, Users, MessageSquare, FileText, MessagesSquare, Target, Eye } from 'lucide-react';
 import { fmtBRL, fmtNum, fmtPct } from '../../utils/calculations';
 
 function Card({ icon: Icon, label, value, sub, color, trend }) {
@@ -9,6 +9,7 @@ function Card({ icon: Icon, label, value, sub, color, trend }) {
     orange: { bg: 'bg-orange-50', icon: 'bg-orange-100 text-orange-600', text: 'text-orange-700' },
     red:    { bg: 'bg-red-50',    icon: 'bg-red-100 text-red-600',    text: 'text-red-700' },
     teal:   { bg: 'bg-teal-50',   icon: 'bg-teal-100 text-teal-600',  text: 'text-teal-700' },
+    indigo: { bg: 'bg-indigo-50', icon: 'bg-indigo-100 text-indigo-600', text: 'text-indigo-700' },
   };
   const c = colors[color] || colors.blue;
 
@@ -45,7 +46,8 @@ export function SummaryCards({ resumo, resumoAnterior }) {
   };
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4">
+      {/* 1 — Total Investido */}
       <Card
         icon={DollarSign}
         label="Total Investido"
@@ -54,6 +56,8 @@ export function SummaryCards({ resumo, resumoAnterior }) {
         color="blue"
         trend={trend(resumo.totalSpend, resumoAnterior?.totalSpend)}
       />
+
+      {/* 2 — Total de Leads (formulários) */}
       <Card
         icon={Users}
         label="Total de Leads"
@@ -62,30 +66,48 @@ export function SummaryCards({ resumo, resumoAnterior }) {
         color="green"
         trend={trend(resumo.totalLeads, resumoAnterior?.totalLeads)}
       />
+
+      {/* 3 — Conversas WhatsApp */}
       <Card
         icon={MessageSquare}
-        label="Conversas WhatsApp"
+        label="Conversas WA"
         value={fmtNum(resumo.totalConversations)}
         sub="mensagens iniciadas"
         color="purple"
         trend={trend(resumo.totalConversations, resumoAnterior?.totalConversations)}
       />
+
+      {/* 4 — Custo por Lead (formulário) */}
       <Card
-        icon={TrendingDown}
-        label="CPL Médio"
-        value={fmtBRL(resumo.cplMedio)}
-        sub="custo por lead/conversa"
-        color="orange"
-        trend={trend(resumo.cplMedio, resumoAnterior?.cplMedio, true)}
+        icon={FileText}
+        label="Custo por Lead"
+        value={resumo.cplLead != null ? fmtBRL(resumo.cplLead) : '—'}
+        sub="form GT · form Davi"
+        color="teal"
+        trend={trend(resumo.cplLead, resumoAnterior?.cplLead, true)}
       />
+
+      {/* 5 — Custo por Conversa WA */}
+      <Card
+        icon={MessagesSquare}
+        label="Custo por Conv. WA"
+        value={resumo.cplConversa != null ? fmtBRL(resumo.cplConversa) : '—'}
+        sub="mensagem WhatsApp"
+        color="indigo"
+        trend={trend(resumo.cplConversa, resumoAnterior?.cplConversa, true)}
+      />
+
+      {/* 6 — Taxa de Lead */}
       <Card
         icon={Target}
         label="Taxa de Lead"
         value={fmtPct(resumo.taxaLeadMedia, 2)}
         sub="leads ÷ alcance"
-        color="teal"
+        color="orange"
         trend={trend(resumo.taxaLeadMedia, resumoAnterior?.taxaLeadMedia)}
       />
+
+      {/* 7 — Alcance Total */}
       <Card
         icon={Eye}
         label="Alcance Total"
