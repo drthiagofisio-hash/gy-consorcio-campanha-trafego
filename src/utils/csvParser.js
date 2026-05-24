@@ -29,9 +29,14 @@ export const COLUMN_ALIASES = {
     'Leads', 'leads',
   ],
   conversations: [
+    'Conversas iniciadas no WhatsApp',
     'Conversas iniciadas (mensagens)', 'Conversations started (messages)',
     'Conversas iniciadas', 'conversas iniciadas', 'conversations',
     'Mensagens iniciadas', 'messaging conversations started',
+    'Início de conversa', 'inicio de conversa',
+    'Conversas no WhatsApp', 'conversas no whatsapp',
+    'WhatsApp conversations', 'whatsapp conversations',
+    'New messaging connections', 'new messaging connections',
   ],
   costPerResult: [
     'Custo por resultado', 'Cost per result', 'custo por resultado',
@@ -139,15 +144,26 @@ function parseRow(rowObj, columnMap, headers) {
   const campDef = encontrarCampanha(campaignName) ||
     CAMPANHAS.find(c => c.id === campaignName) || null;
 
+  // Fallback: se nem leads nem conversas foram detectados mas "Resultados" tem valor,
+  // distribui pelo tipo de campanha (bittrex = WA → conversas; grupoGT/davi = Form → leads)
+  const rawLeads = getNum('leads');
+  const rawConversations = getNum('conversations');
+  const rawResults = getNum('results');
+  const isWA = campDef?.fluxo === 'bittrex';
+  const finalLeads = rawLeads === 0 && rawConversations === 0 && rawResults > 0 && !isWA
+    ? rawResults : rawLeads;
+  const finalConversations = rawLeads === 0 && rawConversations === 0 && rawResults > 0 && isWA
+    ? rawResults : rawConversations;
+
   return {
     campaignId: campDef?.id || campaignName,
     campaignName,
     adSetName: String(get('adSetName') || '').trim(),
     adName: String(get('adName') || '').trim(),
     spend: getNum('spend'),
-    results: getNum('results'),
-    leads: getNum('leads'),
-    conversations: getNum('conversations'),
+    results: rawResults,
+    leads: finalLeads,
+    conversations: finalConversations,
     costPerResult: getNum('costPerResult'),
     costPerLead: getNum('costPerLead'),
     costPerConversation: getNum('costPerConversation'),
