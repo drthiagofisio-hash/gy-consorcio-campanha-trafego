@@ -1,9 +1,14 @@
 import { useState } from 'react';
 import { CAMPANHAS, FLUXOS } from '../../data/campaigns';
 import { VIDEOS } from '../../data/videos';
-import { Copy, CheckCheck, BookOpen, Film, Megaphone, Layers, Target } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
+import {
+  Copy, CheckCheck, BookOpen, Film, Megaphone, Layers, Target,
+  Pencil, Trash2, Plus, Check, X,
+} from 'lucide-react';
 import { TempBadge, FluxoBadge } from '../ui/Badge';
 
+// ── Botão copiar ─────────────────────────────────────────────────
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
@@ -31,7 +36,7 @@ function CopyCell({ value }) {
   );
 }
 
-// Convenção de nome dos anúncios: V[id]_[NomeResumido]_[CampanhaID]
+// ── Convenção de nome dos anúncios ───────────────────────────────
 const CONVENCAO_ANUNCIO = [
   { campanha: 'RAB_WA_01', videosRecomendados: ['V4', 'V8'], exemplos: ['V4_PlanSemLance_WA01', 'V8_TraduzindoConsorcio_WA01'] },
   { campanha: 'RAB_WA_02', videosRecomendados: ['V4', 'V8'], exemplos: ['V4_PlanSemLance_WA02', 'V8_TraduzindoConsorcio_WA02'] },
@@ -52,124 +57,336 @@ const FLUXO_COLORS = {
   davi: 'bg-indigo-50 border-indigo-200',
 };
 
-// ── Dados de segmentação por temperatura ──────────────────────
-const SEGMENTACAO = [
-  {
-    temperatura: 'quente',
-    emoji: '🔴',
-    label: 'QUENTE',
-    cor: {
-      header: 'bg-red-600',
-      borda: 'border-red-200',
-      fundo: 'bg-red-50',
-      badge: 'bg-red-100 text-red-700',
-      linha: 'hover:bg-red-50',
-    },
-    publicos: [
-      {
-        publico: 'Envolvidos com o perfil nos últimos 7 dias',
-        videos: ['V4 — Plano Sem Lance', 'V8 — Traduzindo Consórcio'],
-        localidade: 'Todo o Ceará',
-        campanhas: ['RAB_WA_01', 'RAB_FORM_01'],
-      },
-      {
-        publico: 'Assistiu 95% ou mais dos vídeos do feed',
-        videos: ['V4 — Plano Sem Lance', 'V8 — Traduzindo Consórcio'],
-        localidade: 'Todo o Ceará',
-        campanhas: ['RAB_WA_02', 'RAB_FORM_01'],
-      },
-    ],
-  },
-  {
-    temperatura: 'morno',
-    emoji: '🟡',
-    label: 'MORNO',
-    cor: {
-      header: 'bg-orange-500',
-      borda: 'border-orange-200',
-      fundo: 'bg-orange-50',
-      badge: 'bg-orange-100 text-orange-700',
-      linha: 'hover:bg-orange-50',
-    },
-    publicos: [
-      {
-        publico: 'Envolvidos com o perfil nos últimos 30 dias',
-        videos: ['V1 — 3 Formas de Comprá-lo', 'V2 — Aluguel Disfarçado', 'V3 — Erro Financeiro'],
-        localidade: 'Todo o Ceará',
-        campanhas: ['RAB_WA_03', 'RAB_FORM_02'],
-      },
-      {
-        publico: 'Envolvidos com o perfil nos últimos 90 dias',
-        videos: ['V1 — 3 Formas de Comprá-lo', 'V2 — Aluguel Disfarçado', 'V3 — Erro Financeiro'],
-        localidade: 'Todo o Ceará',
-        campanhas: ['RAB_WA_03', 'RAB_FORM_02'],
-      },
-      {
-        publico: 'Envolvidos com o perfil nos últimos 365 dias',
-        videos: ['V1 — 3 Formas de Comprá-lo', 'V2 — Aluguel Disfarçado', 'V3 — Erro Financeiro'],
-        localidade: 'Todo o Ceará',
-        campanhas: ['RAB_WA_03', 'RAB_FORM_02'],
-      },
-      {
-        publico: 'Visitou o perfil nos últimos 30 dias',
-        videos: ['V1 — 3 Formas de Comprá-lo', 'V2 — Aluguel Disfarçado'],
-        localidade: 'Todo o Ceará',
-        campanhas: ['RAB_WA_04'],
-      },
-      {
-        publico: 'Visitou o perfil nos últimos 365 dias',
-        videos: ['V1 — 3 Formas de Comprá-lo', 'V2 — Aluguel Disfarçado'],
-        localidade: 'Todo o Ceará',
-        campanhas: ['RAB_WA_04'],
-      },
-    ],
-  },
-  {
-    temperatura: 'frio',
-    emoji: '🔵',
-    label: 'FRIO',
-    cor: {
-      header: 'bg-blue-600',
-      borda: 'border-blue-200',
-      fundo: 'bg-blue-50',
-      badge: 'bg-blue-100 text-blue-700',
-      linha: 'hover:bg-blue-50',
-    },
-    publicos: [
-      {
-        publico: 'Interesse em consórcio + veículos (ticket R$80k–150k) + Lookalike 1%',
-        videos: ['V5 — BYD', 'V6 — Corolla', 'V7 — Picape'],
-        localidade: 'Todo o Ceará',
-        campanhas: ['RAB_WA_05'],
-      },
-      {
-        publico: 'Lookalike 1% de compradores (base de clientes)',
-        videos: ['V6 — Corolla', 'V7 — Picape'],
-        localidade: 'Todo o Ceará',
-        campanhas: ['RAB_FORM_03'],
-      },
-      {
-        publico: 'Amplo — 28 a 55 anos, sem segmentação por interesse',
-        videos: ['V2 — Aluguel Disfarçado', 'V3 — Erro Financeiro'],
-        localidade: 'Fortaleza + Região Metropolitana',
-        campanhas: ['RAB_DAVI_02'],
-      },
-      {
-        publico: 'Interesse em consórcio + imóveis + veículos · renda R$5k–15k',
-        videos: ['V5 — BYD', 'V9 — H9/Haval'],
-        localidade: 'Fortaleza + Região Metropolitana',
-        campanhas: ['RAB_DAVI_01'],
-      },
-      {
-        publico: 'Interesse em consórcio + veículos · renda média-alta',
-        videos: ['V5 — BYD', 'V7 — Picape', 'V9 — H9/Haval'],
-        localidade: 'Recife · Salvador · Natal',
-        campanhas: ['RAB_WA_06'],
-      },
-    ],
-  },
-];
+// ── Componente: aba de segmentação editável ──────────────────────
+function SegmentacaoTab() {
+  const { segmentacao, updateSegmentacao } = useApp();
 
+  // editando = { tIdx, pIdx } — qual linha está em edição, ou null
+  const [editando, setEditando] = useState(null);
+  const [rascunho, setRascunho] = useState(null);
+
+  // Inicia edição de uma linha
+  function iniciarEdicao(tIdx, pIdx) {
+    setEditando({ tIdx, pIdx });
+    setRascunho({ ...segmentacao[tIdx].publicos[pIdx] });
+  }
+
+  // Cancela edição
+  function cancelar() {
+    setEditando(null);
+    setRascunho(null);
+  }
+
+  // Salva edição
+  function salvar() {
+    const { tIdx, pIdx } = editando;
+    const nova = segmentacao.map((grupo, gi) => {
+      if (gi !== tIdx) return grupo;
+      return {
+        ...grupo,
+        publicos: grupo.publicos.map((p, pi) => (pi === pIdx ? { ...rascunho } : p)),
+      };
+    });
+    updateSegmentacao(nova);
+    cancelar();
+  }
+
+  // Remove uma linha (com confirmação simples)
+  function remover(tIdx, pIdx) {
+    if (!window.confirm('Remover este público?')) return;
+    const nova = segmentacao.map((grupo, gi) => {
+      if (gi !== tIdx) return grupo;
+      return { ...grupo, publicos: grupo.publicos.filter((_, pi) => pi !== pIdx) };
+    });
+    updateSegmentacao(nova);
+    if (editando?.tIdx === tIdx && editando?.pIdx === pIdx) cancelar();
+  }
+
+  // Adiciona linha em branco em um grupo
+  function adicionarPublico(tIdx) {
+    const nova = segmentacao.map((grupo, gi) => {
+      if (gi !== tIdx) return grupo;
+      return {
+        ...grupo,
+        publicos: [
+          ...grupo.publicos,
+          { publico: '', videos: [], localidade: '', campanhas: [] },
+        ],
+      };
+    });
+    updateSegmentacao(nova);
+    // Abre edição automaticamente na nova linha
+    const novoIdx = segmentacao[tIdx].publicos.length;
+    setEditando({ tIdx, pIdx: novoIdx });
+    setRascunho({ publico: '', videos: [], localidade: '', campanhas: [] });
+  }
+
+  // Toggle de vídeo no rascunho
+  function toggleVideo(videoStr) {
+    setRascunho(r => ({
+      ...r,
+      videos: r.videos.includes(videoStr)
+        ? r.videos.filter(v => v !== videoStr)
+        : [...r.videos, videoStr],
+    }));
+  }
+
+  // Toggle de campanha no rascunho
+  function toggleCampanha(campId) {
+    setRascunho(r => ({
+      ...r,
+      campanhas: r.campanhas.includes(campId)
+        ? r.campanhas.filter(c => c !== campId)
+        : [...r.campanhas, campId],
+    }));
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <p className="text-sm text-gray-600">
+          Referência de públicos, vídeos e localidades por temperatura de audiência.
+          Clique em <strong>✏️</strong> em qualquer linha para editar, ou em <strong>+</strong> para adicionar um novo público.
+        </p>
+        <span className="text-xs text-gray-400 bg-gray-100 rounded-lg px-2.5 py-1 shrink-0 whitespace-nowrap">
+          💾 Salvo automaticamente
+        </span>
+      </div>
+
+      {segmentacao.map((grupo, tIdx) => {
+        const { temperatura, emoji, label, cor, publicos } = grupo;
+
+        return (
+          <div key={temperatura} className={`rounded-xl border-2 overflow-hidden ${cor.borda}`}>
+            {/* Header da temperatura */}
+            <div className={`${cor.header} px-5 py-3 flex items-center gap-2`}>
+              <span className="text-lg">{emoji}</span>
+              <span className="text-white font-bold text-sm tracking-wide">{label}</span>
+              <span className="text-white/70 text-xs ml-auto">{publicos.length} público(s)</span>
+            </div>
+
+            {/* Tabela */}
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm bg-white">
+                <thead className={`${cor.fundo} border-b ${cor.borda}`}>
+                  <tr>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600 w-2/5">Público</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600 w-2/5">Vídeos</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Localidade</th>
+                    <th className="px-3 py-3 text-center font-semibold text-gray-600 w-20">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {publicos.map((p, pIdx) => {
+                    const estaEditando = editando?.tIdx === tIdx && editando?.pIdx === pIdx;
+
+                    if (estaEditando && rascunho) {
+                      // ── MODO EDIÇÃO ──
+                      return (
+                        <tr key={pIdx} className="bg-amber-50">
+                          {/* Público + Campanhas (edit) */}
+                          <td className="px-4 py-3 align-top">
+                            <textarea
+                              className="w-full text-sm border border-amber-300 rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                              rows={3}
+                              value={rascunho.publico}
+                              onChange={e => setRascunho(r => ({ ...r, publico: e.target.value }))}
+                              placeholder="Descrição do público..."
+                            />
+                            {/* Campanhas */}
+                            <div className="mt-2">
+                              <p className="text-xs font-semibold text-gray-500 mb-1">Campanhas:</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {CAMPANHAS.map(camp => {
+                                  const ativa = rascunho.campanhas.includes(camp.id);
+                                  return (
+                                    <button
+                                      key={camp.id}
+                                      onClick={() => toggleCampanha(camp.id)}
+                                      className={`text-xs px-2 py-0.5 rounded font-mono font-semibold border transition-all ${
+                                        ativa
+                                          ? `${cor.badge} border-current`
+                                          : 'bg-gray-100 text-gray-400 border-gray-200 hover:bg-gray-200'
+                                      }`}
+                                    >
+                                      {camp.id}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Vídeos (edit) */}
+                          <td className="px-4 py-3 align-top">
+                            <p className="text-xs font-semibold text-gray-500 mb-2">Selecione os vídeos:</p>
+                            <div className="grid grid-cols-1 gap-1">
+                              {VIDEOS.map(v => {
+                                const videoStr = `${v.id} — ${v.nome}`;
+                                const ativo = rascunho.videos.includes(videoStr);
+                                return (
+                                  <label
+                                    key={v.id}
+                                    className={`flex items-center gap-2 text-xs cursor-pointer rounded px-2 py-1 transition-colors ${
+                                      ativo ? 'bg-purple-50 text-purple-700' : 'text-gray-500 hover:bg-gray-50'
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={ativo}
+                                      onChange={() => toggleVideo(videoStr)}
+                                      className="accent-purple-600"
+                                    />
+                                    <span className="font-bold w-5 text-purple-600">{v.id}</span>
+                                    <span>{v.nome}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </td>
+
+                          {/* Localidade (edit) */}
+                          <td className="px-4 py-3 align-top">
+                            <input
+                              type="text"
+                              className="w-full text-xs border border-amber-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                              value={rascunho.localidade}
+                              onChange={e => setRascunho(r => ({ ...r, localidade: e.target.value }))}
+                              placeholder="Ex: Todo o Ceará"
+                            />
+                          </td>
+
+                          {/* Ações (edit) */}
+                          <td className="px-3 py-3 align-top">
+                            <div className="flex flex-col gap-1.5 items-center">
+                              <button
+                                onClick={salvar}
+                                title="Salvar"
+                                className="p-1.5 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                              >
+                                <Check size={15} />
+                              </button>
+                              <button
+                                onClick={cancelar}
+                                title="Cancelar"
+                                className="p-1.5 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                              >
+                                <X size={15} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    // ── MODO VISUALIZAÇÃO ──
+                    return (
+                      <tr key={pIdx} className={`${cor.linha} transition-colors group`}>
+                        {/* Público */}
+                        <td className="px-4 py-3 align-top">
+                          <p className="text-gray-800 text-sm leading-snug">{p.publico || <span className="text-gray-400 italic">sem descrição</span>}</p>
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {p.campanhas.map(c => (
+                              <span key={c} className={`text-xs px-1.5 py-0.5 rounded font-mono font-semibold ${cor.badge}`}>
+                                {c}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+
+                        {/* Vídeos */}
+                        <td className="px-4 py-3 align-top">
+                          <div className="flex flex-col gap-1">
+                            {p.videos.length === 0 && (
+                              <span className="text-xs text-gray-400 italic">nenhum vídeo</span>
+                            )}
+                            {p.videos.map((v, vi) => {
+                              const partes = v.split(' — ');
+                              const videoId = partes[0];
+                              const videoNome = partes[1];
+                              return (
+                                <div key={vi} className="flex items-center gap-1.5">
+                                  <span className="text-xs font-bold text-purple-600 w-5 shrink-0">{videoId}</span>
+                                  <span className="text-xs text-gray-600">{videoNome}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </td>
+
+                        {/* Localidade */}
+                        <td className="px-4 py-3 align-top">
+                          <span className="text-xs text-gray-600 bg-gray-100 rounded-lg px-2 py-1 inline-block leading-snug">
+                            📍 {p.localidade || '—'}
+                          </span>
+                        </td>
+
+                        {/* Ações */}
+                        <td className="px-3 py-3 align-top">
+                          <div className="flex flex-col gap-1.5 items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => iniciarEdicao(tIdx, pIdx)}
+                              title="Editar"
+                              className="p-1.5 rounded-lg bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              onClick={() => remover(tIdx, pIdx)}
+                              title="Remover"
+                              className="p-1.5 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 transition-colors"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Botão adicionar público */}
+            <div className={`${cor.fundo} px-4 py-2.5 border-t ${cor.borda}`}>
+              <button
+                onClick={() => adicionarPublico(tIdx)}
+                className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <Plus size={14} />
+                Adicionar público {label.toLowerCase()}
+              </button>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Resumo visual */}
+      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+        <p className="text-xs font-semibold text-slate-600 mb-3 uppercase tracking-wide">Resumo rápido dos vídeos por temperatura</p>
+        <div className="grid grid-cols-3 gap-3 text-xs">
+          {segmentacao.map(grupo => (
+            <div
+              key={grupo.temperatura}
+              className={`rounded-lg p-3 border ${grupo.cor.borda} ${grupo.cor.fundo}`}
+            >
+              <p className="font-bold mb-1" style={{ color: 'inherit' }}>
+                {grupo.emoji} {grupo.label.charAt(0) + grupo.label.slice(1).toLowerCase()}
+              </p>
+              {Array.from(
+                new Set(grupo.publicos.flatMap(p => p.videos))
+              ).map(v => (
+                <p key={v} className="text-gray-600">{v}</p>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Componente principal ─────────────────────────────────────────
 export function NamingGuide() {
   const [aba, setAba] = useState('campanhas');
 
@@ -360,102 +577,7 @@ export function NamingGuide() {
       )}
 
       {/* ABA: SEGMENTAÇÃO */}
-      {aba === 'segmentacao' && (
-        <div className="space-y-6">
-          <p className="text-sm text-gray-600">
-            Referência completa de públicos, vídeos e localidades por temperatura de audiência.
-            Use como guia na hora de configurar cada conjunto de anúncios no Meta Ads.
-          </p>
-
-          {SEGMENTACAO.map(({ temperatura, emoji, label, cor, publicos }) => (
-            <div key={temperatura} className={`rounded-xl border-2 overflow-hidden ${cor.borda}`}>
-              {/* Header da temperatura */}
-              <div className={`${cor.header} px-5 py-3 flex items-center gap-2`}>
-                <span className="text-lg">{emoji}</span>
-                <span className="text-white font-bold text-sm tracking-wide">{label}</span>
-                <span className="text-white/70 text-xs ml-auto">{publicos.length} público(s)</span>
-              </div>
-
-              {/* Tabela */}
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm bg-white">
-                  <thead className={`${cor.fundo} border-b ${cor.borda}`}>
-                    <tr>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600 w-2/5">Público</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600 w-2/5">Vídeos</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600 w-1/5">Localidade</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {publicos.map((p, i) => (
-                      <tr key={i} className={`${cor.linha} transition-colors`}>
-                        {/* Público */}
-                        <td className="px-4 py-3 align-top">
-                          <p className="text-gray-800 text-sm leading-snug">{p.publico}</p>
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {p.campanhas.map(c => (
-                              <span key={c} className={`text-xs px-1.5 py-0.5 rounded font-mono font-semibold ${cor.badge}`}>
-                                {c}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-
-                        {/* Vídeos */}
-                        <td className="px-4 py-3 align-top">
-                          <div className="flex flex-col gap-1">
-                            {p.videos.map((v, vi) => {
-                              const videoId = v.split(' — ')[0];
-                              return (
-                                <div key={vi} className="flex items-center gap-1.5">
-                                  <span className="text-xs font-bold text-purple-600 w-5 shrink-0">{videoId}</span>
-                                  <span className="text-xs text-gray-600">{v.split(' — ')[1]}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </td>
-
-                        {/* Localidade */}
-                        <td className="px-4 py-3 align-top">
-                          <span className="text-xs text-gray-600 bg-gray-100 rounded-lg px-2 py-1 inline-block leading-snug">
-                            📍 {p.localidade}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))}
-
-          {/* Resumo visual rápido */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-            <p className="text-xs font-semibold text-slate-600 mb-3 uppercase tracking-wide">Resumo rápido dos vídeos por temperatura</p>
-            <div className="grid grid-cols-3 gap-3 text-xs">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="font-bold text-red-700 mb-1">🔴 Quente</p>
-                <p className="text-gray-600">V4 — Plano Sem Lance</p>
-                <p className="text-gray-600">V8 — Traduzindo Consórcio</p>
-              </div>
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                <p className="font-bold text-orange-700 mb-1">🟡 Morno</p>
-                <p className="text-gray-600">V1 — 3 Formas de Comprá-lo</p>
-                <p className="text-gray-600">V2 — Aluguel Disfarçado</p>
-                <p className="text-gray-600">V3 — Erro Financeiro</p>
-              </div>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="font-bold text-blue-700 mb-1">🔵 Frio</p>
-                <p className="text-gray-600">V5 — BYD</p>
-                <p className="text-gray-600">V6 — Corolla</p>
-                <p className="text-gray-600">V7 — Picape</p>
-                <p className="text-gray-600">V9 — H9/Haval</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {aba === 'segmentacao' && <SegmentacaoTab />}
     </div>
   );
 }
