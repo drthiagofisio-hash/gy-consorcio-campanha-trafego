@@ -116,6 +116,18 @@ const DEFAULT_SEGMENTACAO = [
         localidade: 'Recife · Salvador · Natal',
         campanhas: ['RAB_WA_06'],
       },
+      {
+        publico: 'LKL 1% de Envolveu + Seguidor',
+        videos: ['V1 — 3 Formas de Comprá-lo', 'V2 — Aluguel Disfarçado', 'V3 — Erro Financeiro'],
+        localidade: 'Nordeste do Brasil',
+        campanhas: ['RAB_WA_07'],
+      },
+      {
+        publico: 'LKL 1% de Visitou + Vídeo',
+        videos: ['V5 — BYD', 'V6 — Corolla', 'V7 — Picape'],
+        localidade: 'Nordeste do Brasil',
+        campanhas: ['RAB_WA_08'],
+      },
     ],
   },
 ];
@@ -158,6 +170,14 @@ const DEFAULT_CONFIG = {
     'V8_TraduzindoConsorcio_FORM01': 'V8',
     'V9_VideoHaval_WA06': 'V9',
     'V9_VideoHaval_DAVI01': 'V9',
+    // RAB_WA_07 — LKL 1% Envolveu + Seguidor
+    'V1_3Formas_WA07': 'V1',
+    'V2_AluguelDisfarcado_WA07': 'V2',
+    'V3_ErroFinanceiro_WA07': 'V3',
+    // RAB_WA_08 — LKL 1% Visitou + Vídeo
+    'V5_TelaDivididaBYD_WA08': 'V5',
+    'V6_TelaDivididaCorolla_WA08': 'V6',
+    'V7_TelaDivididaPicape_WA08': 'V7',
   },
   columnMap: {},
 };

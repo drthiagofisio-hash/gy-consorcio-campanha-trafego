@@ -49,6 +49,8 @@ const CONVENCAO_ANUNCIO = [
   { campanha: 'RAB_FORM_03', videosRecomendados: ['V6', 'V7'], exemplos: ['V6_TelaDivididaCorolla_FORM03', 'V7_TelaDivididaPicape_FORM03'] },
   { campanha: 'RAB_DAVI_01', videosRecomendados: ['V5', 'V9'], exemplos: ['V5_TelaDivididaBYD_DAVI01', 'V9_VideoHaval_DAVI01'] },
   { campanha: 'RAB_DAVI_02', videosRecomendados: ['V2', 'V3'], exemplos: ['V2_AluguelDisfarcado_DAVI02', 'V3_ErroFinanceiro_DAVI02'] },
+  { campanha: 'RAB_WA_07',   videosRecomendados: ['V1', 'V2', 'V3'], exemplos: ['V1_3Formas_WA07', 'V2_AluguelDisfarcado_WA07', 'V3_ErroFinanceiro_WA07'] },
+  { campanha: 'RAB_WA_08',   videosRecomendados: ['V5', 'V6', 'V7'], exemplos: ['V5_TelaDivididaBYD_WA08', 'V6_TelaDivididaCorolla_WA08', 'V7_TelaDivididaPicape_WA08'] },
 ];
 
 const FLUXO_COLORS = {

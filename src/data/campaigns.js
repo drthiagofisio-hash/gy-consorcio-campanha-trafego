@@ -70,6 +70,24 @@ export const CAMPANHAS = [
     temperatura: 'frio',
     verbaSemanal: 350.00,
   },
+  {
+    id: 'RAB_WA_07',
+    nome: 'RAB_WA_LKL_Envolveu',
+    fluxo: 'bittrex',
+    segmentacao: 'LKL 1% de Envolveu + Seguidor',
+    geo: 'Nordeste do Brasil',
+    temperatura: 'frio',
+    verbaSemanal: 300.00,
+  },
+  {
+    id: 'RAB_WA_08',
+    nome: 'RAB_WA_LKL_Visitou',
+    fluxo: 'bittrex',
+    segmentacao: 'LKL 1% de Visitou + Vídeo',
+    geo: 'Nordeste do Brasil',
+    temperatura: 'frio',
+    verbaSemanal: 300.00,
+  },
   // ── FLUXO 2: Formulário Grupo GT (20%) ───────────────────────
   {
     id: 'RAB_FORM_01',
