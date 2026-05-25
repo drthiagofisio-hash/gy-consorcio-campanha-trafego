@@ -124,7 +124,9 @@ export function buildColumnMap(headers) {
 }
 
 // Converte uma linha CSV em objeto estruturado
-function parseRow(rowObj, columnMap, headers) {
+function parseRow(rowObj, columnMap, headers, bmContext = {}) {
+  const { campanhas: CAMP = CAMPANHAS, encontrarCampanhaFn = encontrarCampanha } = bmContext;
+
   const get = (field) => {
     if (columnMap[field] !== undefined) {
       return rowObj[headers[columnMap[field]]] ?? rowObj[columnMap[field]] ?? null;
@@ -141,8 +143,8 @@ function parseRow(rowObj, columnMap, headers) {
   };
 
   const campaignName = String(get('campaignName') || '').trim();
-  const campDef = encontrarCampanha(campaignName) ||
-    CAMPANHAS.find(c => c.id === campaignName) || null;
+  const campDef = encontrarCampanhaFn(campaignName) ||
+    CAMP.find(c => c.id === campaignName) || null;
 
   // Fallback: se nem leads nem conversas foram detectados mas "Resultados" tem valor,
   // distribui pelo tipo de campanha (bittrex = WA → conversas; grupoGT/davi = Form → leads)
@@ -177,8 +179,8 @@ function parseRow(rowObj, columnMap, headers) {
   };
 }
 
-// Função principal de parse
-export function parseMetaCSV(rawText) {
+// Função principal de parse — aceita bmContext opcional para suporte multi-BM
+export function parseMetaCSV(rawText, bmContext = {}) {
   const separator = detectSeparator(rawText);
 
   const result = Papa.parse(rawText, {
@@ -208,7 +210,7 @@ export function parseMetaCSV(rawText) {
       // Para o mapa de colunas com header como key
       const mapped = {};
       headers.forEach((h, i) => { mapped[h] = row[h]; });
-      return parseRow(mapped, columnMap, headers);
+      return parseRow(mapped, columnMap, headers, bmContext);
     })
     .filter(row => row.campaignName && row.spend >= 0);
 

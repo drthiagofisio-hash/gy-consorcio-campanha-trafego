@@ -14,6 +14,16 @@ export const fmtPct = (v, dec = 1) =>
 export const fmtNum = (v, dec = 0) =>
   v == null ? '-' : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 
+// ── Helpers internos para extrair dados do bmContext ─────────
+function resolveBM(bmContext = {}) {
+  return {
+    campanhas: bmContext.campanhas || CAMPANHAS,
+    fluxos: bmContext.fluxos || FLUXOS,
+    videos: bmContext.videos || VIDEOS,
+    encontrarFn: bmContext.encontrarCampanhaFn || encontrarCampanha,
+  };
+}
+
 // ── Status da campanha ────────────────────────────────────────
 export function calcularStatus(cpl, mediaCpl, frequencia, ctr, leads, mediaLeads) {
   if (!cpl || !mediaCpl) return { label: 'Sem dados', cor: 'gray', classe: 'bg-gray-100 text-gray-600' };
@@ -36,14 +46,15 @@ export function calcularStatus(cpl, mediaCpl, frequencia, ctr, leads, mediaLeads
 }
 
 // ── Agrega dados por campanha ─────────────────────────────────
-export function agregarPorCampanha(rows, adVideoMap = {}) {
+export function agregarPorCampanha(rows, adVideoMap = {}, bmContext = {}) {
+  const { campanhas, encontrarFn } = resolveBM(bmContext);
   const map = {};
 
   rows.forEach(row => {
     const campaignId = row.campaignId || row.campaignName;
     if (!map[campaignId]) {
-      const campDef = encontrarCampanha(row.campaignName) ||
-        CAMPANHAS.find(c => c.id === row.campaignId) || null;
+      const campDef = encontrarFn(row.campaignName) ||
+        campanhas.find(c => c.id === row.campaignId) || null;
       map[campaignId] = {
         campaignId: campDef?.id || campaignId,
         campaignName: row.campaignName,
@@ -96,12 +107,14 @@ export function agregarPorCampanha(rows, adVideoMap = {}) {
 }
 
 // ── Agrega dados por anúncio (com vídeo vinculado) ───────────
-export function agregarPorAnuncio(rows, adVideoMap = {}) {
+export function agregarPorAnuncio(rows, adVideoMap = {}, bmContext = {}) {
+  const { campanhas, videos, encontrarFn } = resolveBM(bmContext);
+
   return rows.map(row => {
     const videoId = adVideoMap[row.adName] || null;
-    const video = videoId ? VIDEOS.find(v => v.id === videoId) : null;
-    const campDef = encontrarCampanha(row.campaignName) ||
-      CAMPANHAS.find(c => c.id === row.campaignId) || null;
+    const video = videoId ? videos.find(v => v.id === videoId) : null;
+    const campDef = encontrarFn(row.campaignName) ||
+      campanhas.find(c => c.id === row.campaignId) || null;
     const taxaLead = row.reach > 0 ? (row.leads / row.reach) * 100 : 0;
     const taxaMensagem = row.reach > 0 ? (row.conversations / row.reach) * 100 : 0;
     const totalResult = row.leads > 0 ? row.leads : row.conversations;
@@ -124,7 +137,8 @@ export function agregarPorAnuncio(rows, adVideoMap = {}) {
 }
 
 // ── Agrega dados por vídeo ────────────────────────────────────
-export function agregarPorVideo(rows, adVideoMap = {}) {
+export function agregarPorVideo(rows, adVideoMap = {}, bmContext = {}) {
+  const { videos } = resolveBM(bmContext);
   const map = {};
 
   rows.forEach(row => {
@@ -152,7 +166,7 @@ export function agregarPorVideo(rows, adVideoMap = {}) {
   });
 
   return Object.values(map).map(agg => {
-    const video = VIDEOS.find(v => v.id === agg.videoId);
+    const video = videos.find(v => v.id === agg.videoId);
     const totalResult = agg.leads > 0 ? agg.leads : agg.conversations;
     const cpl = totalResult > 0 ? agg.spend / totalResult : null;
     const taxaLead = agg.reach > 0 ? (agg.leads / agg.reach) * 100 : 0;
@@ -174,8 +188,9 @@ export function agregarPorVideo(rows, adVideoMap = {}) {
 }
 
 // ── Resumo geral ─────────────────────────────────────────────
-export function calcularResumo(rows) {
+export function calcularResumo(rows, bmContext = {}) {
   if (!rows || rows.length === 0) return null;
+  const { campanhas, encontrarFn } = resolveBM(bmContext);
 
   const totalSpend = rows.reduce((s, r) => s + (r.spend || 0), 0);
   const totalLeads = rows.reduce((s, r) => s + (r.leads || 0), 0);
@@ -192,11 +207,11 @@ export function calcularResumo(rows) {
 
   // CPL separado: formulário vs WhatsApp
   const formRows = rows.filter(r => {
-    const campDef = encontrarCampanha(r.campaignName) || CAMPANHAS.find(c => c.id === r.campaignId);
+    const campDef = encontrarFn(r.campaignName) || campanhas.find(c => c.id === r.campaignId);
     return campDef && campDef.fluxo !== 'bittrex';
   });
   const waRows = rows.filter(r => {
-    const campDef = encontrarCampanha(r.campaignName) || CAMPANHAS.find(c => c.id === r.campaignId);
+    const campDef = encontrarFn(r.campaignName) || campanhas.find(c => c.id === r.campaignId);
     return campDef?.fluxo === 'bittrex';
   });
   const formLeads = formRows.reduce((s, r) => s + (r.leads || 0), 0);
@@ -214,27 +229,29 @@ export function calcularResumo(rows) {
 }
 
 // ── Resumo por fluxo ─────────────────────────────────────────
-export function calcularResumoFluxo(rows) {
-  const map = { bittrex: [], grupoGT: [], davi: [] };
+export function calcularResumoFluxo(rows, bmContext = {}) {
+  const { campanhas, fluxos, encontrarFn } = resolveBM(bmContext);
+  const fluxoIds = Object.keys(fluxos);
+  const map = Object.fromEntries(fluxoIds.map(id => [id, []]));
 
   rows.forEach(row => {
-    const campDef = encontrarCampanha(row.campaignName) ||
-      CAMPANHAS.find(c => c.id === row.campaignId);
-    if (campDef) map[campDef.fluxo]?.push(row);
+    const campDef = encontrarFn(row.campaignName) ||
+      campanhas.find(c => c.id === row.campaignId);
+    if (campDef && map[campDef.fluxo]) map[campDef.fluxo].push(row);
   });
 
   return Object.entries(map).map(([fluxoId, flRows]) => {
-    const fluxo = FLUXOS[fluxoId];
-    const resumo = calcularResumo(flRows);
+    const fluxo = fluxos[fluxoId];
+    const resumo = calcularResumo(flRows, bmContext);
     return { fluxoId, fluxo, resumo, rowCount: flRows.length };
   });
 }
 
 // ── Dados semanais para gráficos ─────────────────────────────
-export function calcularDadosSemanais(weeklyData) {
+export function calcularDadosSemanais(weeklyData, bmContext = {}) {
   return [1, 2, 3, 4].map(week => {
     const rows = weeklyData[week] || [];
-    const resumo = calcularResumo(rows);
+    const resumo = calcularResumo(rows, bmContext);
     return {
       semana: `S${week}`,
       week,
@@ -254,10 +271,11 @@ export function variacao(atual, anterior) {
 }
 
 // ── Filtra rows pelo fluxo e temperatura ─────────────────────
-export function filtrarRows(rows, fluxo = 'todos', temperatura = 'todos') {
+export function filtrarRows(rows, fluxo = 'todos', temperatura = 'todos', bmContext = {}) {
+  const { campanhas, encontrarFn } = resolveBM(bmContext);
   return rows.filter(row => {
-    const campDef = encontrarCampanha(row.campaignName) ||
-      CAMPANHAS.find(c => c.id === row.campaignId);
+    const campDef = encontrarFn(row.campaignName) ||
+      campanhas.find(c => c.id === row.campaignId);
     if (fluxo !== 'todos' && campDef?.fluxo !== fluxo) return false;
     if (temperatura !== 'todos' && campDef?.temperatura !== temperatura) return false;
     return true;

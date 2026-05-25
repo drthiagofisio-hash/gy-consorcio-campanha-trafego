@@ -32,7 +32,7 @@ function ColumnMapEditor({ headers, columnMap, onChange }) {
 }
 
 export function ImportCSV() {
-  const { importWeekData, imports, weeklyData, setLoading } = useApp();
+  const { importWeekData, imports, weeklyData, setLoading, bmContext } = useApp();
   const [step, setStep] = useState('idle'); // idle | preview | done | error
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [parseResult, setParseResult] = useState(null);
@@ -47,7 +47,7 @@ export function ImportCSV() {
     setLoading(true);
     try {
       const text = await file.text();
-      const result = parseMetaCSV(text);
+      const result = parseMetaCSV(text, bmContext);
       const val = validarCSV(result);
       setParseResult(result);
       setValidation(val);

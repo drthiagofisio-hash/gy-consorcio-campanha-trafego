@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { CAMPANHAS } from '../../data/campaigns';
-import { VIDEOS } from '../../data/videos';
 import { Save, RotateCcw, Plus, Trash2 } from 'lucide-react';
 
 export function Settings() {
-  const { config, updateConfig, resetToMock } = useApp();
+  const { config, updateConfig, resetToMock, campanhas, videos } = useApp();
   const [form, setForm] = useState({ ...config });
   const [saved, setSaved] = useState(false);
   const [newAdName, setNewAdName] = useState('');
@@ -25,7 +23,6 @@ export function Settings() {
   };
 
   const handleVerbaSemanal = (campId, value) => {
-    // Atualiza a verba da campanha
     setForm(f => ({
       ...f,
       verbaSemanalOverrides: { ...(f.verbaSemanalOverrides || {}), [campId]: parseFloat(value) || 0 }
@@ -54,7 +51,7 @@ export function Settings() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Configurações</h1>
-          <p className="text-sm text-gray-500">Ajuste os parâmetros do sistema</p>
+          <p className="text-sm text-gray-500">Ajuste os parâmetros do sistema — BM: {config.bmName}</p>
         </div>
         <div className="flex gap-3">
           <button onClick={() => { if (confirm('Restaurar todos os dados de exemplo?')) resetToMock(); }}
@@ -101,7 +98,7 @@ export function Settings() {
         <p className="text-xs text-gray-400 mb-4">O sistema usa esses valores para calcular os status das campanhas</p>
         <div className="grid grid-cols-3 gap-4">
           {[
-            { id: 'bittrex', label: 'WhatsApp Bittrex' },
+            { id: 'bittrex', label: 'WhatsApp Bitrix' },
             { id: 'grupoGT', label: 'Formulário Grupo GT' },
             { id: 'davi', label: 'Formulário Davi' },
           ].map(f => (
@@ -128,7 +125,7 @@ export function Settings() {
         <h3 className="text-sm font-semibold text-gray-700 mb-1">Verba Semanal por Campanha</h3>
         <p className="text-xs text-gray-400 mb-4">Ajuste caso a verba mude no meio da campanha</p>
         <div className="space-y-2">
-          {CAMPANHAS.map(camp => (
+          {campanhas.map(camp => (
             <div key={camp.id} className="flex items-center gap-3">
               <span className="text-xs text-gray-600 flex-1">{camp.nome}</span>
               <div className="flex items-center gap-1 border border-gray-200 rounded-lg overflow-hidden w-36">
@@ -152,10 +149,8 @@ export function Settings() {
         <h3 className="text-sm font-semibold text-gray-700 mb-1">Mapeamento Anúncio × Vídeo</h3>
         <p className="text-xs text-gray-400 mb-4">
           Digite o nome exato do anúncio como aparece no CSV e vincule ao vídeo correspondente.
-          O sistema usa isso para calcular a performance por criativo.
         </p>
 
-        {/* Novo mapeamento */}
         <div className="flex gap-2 mb-4">
           <input
             type="text"
@@ -170,7 +165,7 @@ export function Settings() {
             onChange={e => setNewVideoId(e.target.value)}
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
           >
-            {VIDEOS.map(v => (
+            {videos.map(v => (
               <option key={v.id} value={v.id}>{v.id} — {v.nome}</option>
             ))}
           </select>
@@ -180,14 +175,13 @@ export function Settings() {
           </button>
         </div>
 
-        {/* Lista de mapeamentos */}
         <div className="space-y-1.5 max-h-80 overflow-y-auto">
           {Object.entries(form.adVideoMap || {}).map(([adName, videoId]) => {
-            const video = VIDEOS.find(v => v.id === videoId);
+            const video = videos.find(v => v.id === videoId);
             return (
               <div key={adName} className="flex items-center gap-2 py-1.5 px-3 bg-gray-50 rounded-lg group">
                 <span className="text-xs font-mono text-gray-700 flex-1 truncate" title={adName}>{adName}</span>
-                <span className="text-xs text-purple-600 font-semibold w-6">{videoId}</span>
+                <span className="text-xs text-purple-600 font-semibold w-16">{videoId}</span>
                 <span className="text-xs text-gray-400 flex-1 truncate hidden sm:block">{video?.nome}</span>
                 <button onClick={() => removeAdVideoMap(adName)}
                   className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-600 transition-opacity">

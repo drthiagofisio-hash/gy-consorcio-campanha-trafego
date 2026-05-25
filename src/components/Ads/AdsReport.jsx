@@ -5,7 +5,6 @@ import { SortableTable } from '../ui/SortableTable';
 import { TempBadge, FluxoBadge } from '../ui/Badge';
 import { Tooltip } from '../ui/Tooltip';
 import { Download, Film } from 'lucide-react';
-import { FLUXOS } from '../../data/campaigns';
 
 function exportCSV(data) {
   const headers = ['Anúncio','Campanha','Vídeo','Fluxo','Temp.','Investido','Resultados','Leads','Conv.WA','CPL','CTR','Freq.','Alcance','Taxa Lead'];
@@ -24,18 +23,22 @@ function exportCSV(data) {
 }
 
 export function AdsReport() {
-  const { weeklyData, activeWeek, setActiveWeek, activeFluxo, setActiveFluxo, activeTemp, setActiveTemp, config } = useApp();
+  const {
+    weeklyData, activeWeek, setActiveWeek,
+    activeFluxo, setActiveFluxo,
+    activeTemp, setActiveTemp,
+    config, fluxos, bmContext,
+  } = useApp();
 
   const rows = useMemo(() => weeklyData[activeWeek] || [], [weeklyData, activeWeek]);
-  const filteredRows = useMemo(() => filtrarRows(rows, activeFluxo, activeTemp), [rows, activeFluxo, activeTemp]);
-  const resumo = useMemo(() => calcularResumo(filteredRows), [filteredRows]);
+  const filteredRows = useMemo(() => filtrarRows(rows, activeFluxo, activeTemp, bmContext), [rows, activeFluxo, activeTemp, bmContext]);
+  const resumo = useMemo(() => calcularResumo(filteredRows, bmContext), [filteredRows, bmContext]);
 
   const anuncioData = useMemo(() => {
-    const ads = agregarPorAnuncio(filteredRows, config.adVideoMap);
+    const ads = agregarPorAnuncio(filteredRows, config.adVideoMap, bmContext);
     const mediaCpl = resumo?.cplMedio || 0;
     const mediaResult = ads.length > 0 ? ads.reduce((s, a) => s + (a.totalResult || 0), 0) / ads.length : 0;
 
-    // Rankeia dentro de cada campanha por CPL
     const campanhaGroups = {};
     ads.forEach(ad => {
       if (!campanhaGroups[ad.campaignName]) campanhaGroups[ad.campaignName] = [];
@@ -52,7 +55,7 @@ export function AdsReport() {
       status: calcularStatus(ad.cpl, mediaCpl, ad.frequency, ad.ctr, ad.totalResult, mediaResult),
       rankEmCampanha: rankedAds[`${ad.campaignName}__${ad.adName}`] || '-',
     }));
-  }, [filteredRows, config.adVideoMap, resumo]);
+  }, [filteredRows, config.adVideoMap, bmContext, resumo]);
 
   const rankIcon = (rank) => {
     if (rank === 1) return '🥇';
@@ -62,18 +65,9 @@ export function AdsReport() {
   };
 
   const columns = [
-    {
-      key: 'rankEmCampanha', label: 'Rank',
-      render: v => <span className="text-lg">{rankIcon(v)}</span>
-    },
-    {
-      key: 'adName', label: 'Nome do Anúncio',
-      render: v => <span className="font-medium text-gray-800 text-xs max-w-[180px] block truncate" title={v}>{v}</span>
-    },
-    {
-      key: 'campaignName', label: 'Campanha',
-      render: v => <span className="text-xs text-gray-500 max-w-[140px] block truncate" title={v}>{v}</span>
-    },
+    { key: 'rankEmCampanha', label: 'Rank', render: v => <span className="text-lg">{rankIcon(v)}</span> },
+    { key: 'adName', label: 'Nome do Anúncio', render: v => <span className="font-medium text-gray-800 text-xs max-w-[180px] block truncate" title={v}>{v}</span> },
+    { key: 'campaignName', label: 'Campanha', render: v => <span className="text-xs text-gray-500 max-w-[140px] block truncate" title={v}>{v}</span> },
     {
       key: 'videoId', label: 'Vídeo',
       render: (v, row) => v ? (
@@ -117,7 +111,7 @@ export function AdsReport() {
           <select value={activeFluxo} onChange={e => setActiveFluxo(e.target.value)}
             className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white">
             <option value="todos">Todos os fluxos</option>
-            {Object.entries(FLUXOS).map(([id, f]) => <option key={id} value={id}>{f.nome}</option>)}
+            {Object.entries(fluxos).map(([id, f]) => <option key={id} value={id}>{f.nome}</option>)}
           </select>
           <select value={activeTemp} onChange={e => setActiveTemp(e.target.value)}
             className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white">
@@ -125,6 +119,7 @@ export function AdsReport() {
             <option value="quente">🔴 Quente</option>
             <option value="morno">🟠 Morno</option>
             <option value="frio">🔵 Frio</option>
+            <option value="remarketing">🔁 Remarketing</option>
           </select>
           <button onClick={() => exportCSV(anuncioData)}
             className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700">

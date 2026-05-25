@@ -3,6 +3,7 @@ import {
   LayoutDashboard, BarChart2, FileText, Image, Upload, Settings,
   ChevronLeft, ChevronRight, CalendarDays, TrendingUp, BookOpen
 } from 'lucide-react';
+import { useApp } from '../context/AppContext';
 
 const NAV_ITEMS = [
   { id: 'dashboard',    label: 'Dashboard',      icon: LayoutDashboard },
@@ -15,8 +16,13 @@ const NAV_ITEMS = [
   { id: 'configuracoes', label: 'Configurações',  icon: Settings },
 ];
 
+function fmtBRLSimple(v) {
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 });
+}
+
 export function Sidebar({ activePage, onPageChange }) {
   const [collapsed, setCollapsed] = useState(false);
+  const { activeBM, setActiveBM, verbaTotalCampanha, impostoInfo } = useApp();
 
   return (
     <aside
@@ -30,7 +36,9 @@ export function Sidebar({ activePage, onPageChange }) {
           <div className="flex flex-col min-w-0">
             <span className="text-xs font-semibold text-blue-400 uppercase tracking-widest truncate">Agora Marketing</span>
             <span className="text-sm font-bold text-white truncate">GT Consórcios</span>
-            <span className="text-xs text-slate-400 truncate">BM Rodobens</span>
+            <span className={`text-xs truncate font-medium ${activeBM === 'excala' ? 'text-purple-400' : 'text-slate-400'}`}>
+              BM {activeBM === 'excala' ? 'GT Excala' : 'Rodobens'}
+            </span>
           </div>
         )}
         <button
@@ -41,14 +49,64 @@ export function Sidebar({ activePage, onPageChange }) {
         </button>
       </div>
 
-      {/* Semana indicador */}
+      {/* Seletor de BM */}
+      <div className={`${collapsed ? 'px-1 py-2' : 'px-3 pt-3'}`}>
+        {collapsed ? (
+          <div className="flex flex-col gap-1">
+            <button
+              onClick={() => setActiveBM('rodobens')}
+              title="BM Rodobens"
+              className={`w-full py-1.5 rounded text-xs font-bold transition-colors ${
+                activeBM === 'rodobens' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-700'
+              }`}
+            >R</button>
+            <button
+              onClick={() => setActiveBM('excala')}
+              title="BM GT Excala"
+              className={`w-full py-1.5 rounded text-xs font-bold transition-colors ${
+                activeBM === 'excala' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-700'
+              }`}
+            >E</button>
+          </div>
+        ) : (
+          <div className="flex rounded-lg overflow-hidden border border-slate-700">
+            <button
+              onClick={() => setActiveBM('rodobens')}
+              className={`flex-1 py-2 text-xs font-semibold transition-colors ${
+                activeBM === 'rodobens'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:bg-slate-700 hover:text-white'
+              }`}
+            >
+              Rodobens
+            </button>
+            <button
+              onClick={() => setActiveBM('excala')}
+              className={`flex-1 py-2 text-xs font-semibold transition-colors ${
+                activeBM === 'excala'
+                  ? 'bg-purple-600 text-white'
+                  : 'text-slate-400 hover:bg-slate-700 hover:text-white'
+              }`}
+            >
+              GT Excala
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Indicador de campanha */}
       {!collapsed && (
-        <div className="mx-3 mt-4 px-3 py-2 bg-blue-600/20 rounded-lg border border-blue-500/30">
+        <div className="mx-3 mt-3 px-3 py-2 bg-blue-600/20 rounded-lg border border-blue-500/30">
           <div className="flex items-center gap-2">
             <CalendarDays size={14} className="text-blue-400" />
             <span className="text-xs text-blue-300 font-medium">Campanha em andamento</span>
           </div>
-          <div className="text-xs text-slate-400 mt-1">4 semanas · R$ 10.900,00</div>
+          <div className="text-xs text-slate-400 mt-1">
+            4 semanas · {fmtBRLSimple(verbaTotalCampanha)}
+            {impostoInfo.tem && (
+              <span className="text-violet-400 ml-1">(liq. {impostoInfo.pct}% imp.)</span>
+            )}
+          </div>
         </div>
       )}
 

@@ -9,10 +9,15 @@ import { WeeklyChart, CPLChart } from './WeeklyChart';
 import { SortableTable } from '../ui/SortableTable';
 import { StatusBadge, TempBadge, FluxoBadge } from '../ui/Badge';
 import { fmtBRL, fmtPct, fmtNum } from '../../utils/calculations';
-import { FLUXOS } from '../../data/campaigns';
 
 export function Dashboard() {
-  const { weeklyData, activeWeek, setActiveWeek, activeFluxo, setActiveFluxo, activeTemp, setActiveTemp, config, campanhasOcultas } = useApp();
+  const {
+    weeklyData, activeWeek, setActiveWeek,
+    activeFluxo, setActiveFluxo,
+    activeTemp, setActiveTemp,
+    config, campanhasOcultas,
+    fluxos, bmContext, bmLabel,
+  } = useApp();
 
   const rows = useMemo(() => {
     const all = weeklyData[activeWeek] || [];
@@ -23,13 +28,13 @@ export function Dashboard() {
   const rowsAnterior = useMemo(() => activeWeek > 1 ? weeklyData[activeWeek - 1] || [] : [], [weeklyData, activeWeek]);
 
   const filteredRows = useMemo(() =>
-    filtrarRows(rows, activeFluxo, activeTemp), [rows, activeFluxo, activeTemp]);
+    filtrarRows(rows, activeFluxo, activeTemp, bmContext), [rows, activeFluxo, activeTemp, bmContext]);
 
-  const resumo = useMemo(() => calcularResumo(filteredRows), [filteredRows]);
-  const resumoAnterior = useMemo(() => calcularResumo(rowsAnterior), [rowsAnterior]);
+  const resumo = useMemo(() => calcularResumo(filteredRows, bmContext), [filteredRows, bmContext]);
+  const resumoAnterior = useMemo(() => calcularResumo(rowsAnterior, bmContext), [rowsAnterior, bmContext]);
 
   const campanhaData = useMemo(() => {
-    const aggr = agregarPorCampanha(filteredRows, config.adVideoMap);
+    const aggr = agregarPorCampanha(filteredRows, config.adVideoMap, bmContext);
     const mediaCpl = resumo?.cplMedio || 0;
     const mediaLeads = aggr.length > 0 ? aggr.reduce((s, c) => s + (c.leads + c.conversations), 0) / aggr.length : 0;
 
@@ -40,7 +45,7 @@ export function Dashboard() {
         status: calcularStatus(cplEfetivo, mediaCpl, c.frequency, c.ctr, c.leads + c.conversations, mediaLeads),
       };
     });
-  }, [filteredRows, config.adVideoMap, resumo]);
+  }, [filteredRows, config.adVideoMap, bmContext, resumo]);
 
   const alertas = useMemo(() =>
     campanhaData.filter(c => ['Pausar', 'Trocar criativo', 'Escalar'].includes(c.status?.label)),
@@ -53,7 +58,7 @@ export function Dashboard() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Dashboard Geral</h1>
-          <p className="text-sm text-gray-500">GT Consórcios · BM Rodobens · Campanha de Tráfego</p>
+          <p className="text-sm text-gray-500">GT Consórcios · BM {bmLabel} · Campanha de Tráfego</p>
         </div>
 
         {/* Filtros */}
@@ -81,7 +86,7 @@ export function Dashboard() {
             className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700"
           >
             <option value="todos">Todos os fluxos</option>
-            {Object.entries(FLUXOS).map(([id, f]) => (
+            {Object.entries(fluxos).map(([id, f]) => (
               <option key={id} value={id}>{f.nome}</option>
             ))}
           </select>
@@ -96,6 +101,7 @@ export function Dashboard() {
             <option value="quente">🔴 Quente</option>
             <option value="morno">🟠 Morno</option>
             <option value="frio">🔵 Frio</option>
+            <option value="remarketing">🔁 Remarketing</option>
           </select>
         </div>
       </div>
@@ -122,7 +128,7 @@ export function Dashboard() {
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
-          <WeeklyChart weeklyData={weeklyData} />
+          <WeeklyChart weeklyData={weeklyData} bmContext={bmContext} />
         </div>
         <div>
           <BudgetProgress rows={filteredRows} />

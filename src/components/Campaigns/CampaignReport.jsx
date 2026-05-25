@@ -5,7 +5,6 @@ import { SortableTable } from '../ui/SortableTable';
 import { TempBadge, FluxoBadge, StatusBadge } from '../ui/Badge';
 import { Tooltip } from '../ui/Tooltip';
 import { Download, EyeOff, Eye, RotateCcw } from 'lucide-react';
-import { FLUXOS } from '../../data/campaigns';
 
 function exportCSV(data) {
   const headers = ['Campanha','Fluxo','Temp.','Geo','Verba Planejada','Investido','%Verba','Leads','Conversas','CPL','CPC','CTR','Frequência','Alcance','Taxa Lead','Taxa Mensagem','Status'];
@@ -31,15 +30,14 @@ export function CampaignReport() {
     weeklyData, activeWeek, setActiveWeek, activeFluxo, setActiveFluxo,
     activeTemp, setActiveTemp, config,
     campanhasOcultas, ocultarCampanhas, restaurarCampanhas,
+    fluxos, bmContext,
   } = useApp();
 
   const [selected, setSelected] = useState(new Set());
   const [mostrarOcultas, setMostrarOcultas] = useState(false);
 
-  // ── Linhas brutas da semana ──────────────────────────────────
   const rows = useMemo(() => weeklyData[activeWeek] || [], [weeklyData, activeWeek]);
 
-  // ── Remove campanhas ocultas (exceto quando gerenciando) ─────
   const rowsVisiveis = useMemo(() => {
     if (mostrarOcultas) return rows;
     const ocultas = new Set(campanhasOcultas);
@@ -47,13 +45,13 @@ export function CampaignReport() {
   }, [rows, campanhasOcultas, mostrarOcultas]);
 
   const filteredRows = useMemo(
-    () => filtrarRows(rowsVisiveis, activeFluxo, activeTemp),
-    [rowsVisiveis, activeFluxo, activeTemp]
+    () => filtrarRows(rowsVisiveis, activeFluxo, activeTemp, bmContext),
+    [rowsVisiveis, activeFluxo, activeTemp, bmContext]
   );
-  const resumo = useMemo(() => calcularResumo(filteredRows), [filteredRows]);
+  const resumo = useMemo(() => calcularResumo(filteredRows, bmContext), [filteredRows, bmContext]);
 
   const campanhaData = useMemo(() => {
-    const aggr = agregarPorCampanha(filteredRows, config.adVideoMap);
+    const aggr = agregarPorCampanha(filteredRows, config.adVideoMap, bmContext);
     const mediaCpl = resumo?.cplMedio || 0;
     const mediaLeads = aggr.length > 0
       ? aggr.reduce((s, c) => s + (c.leads + c.conversations), 0) / aggr.length
@@ -66,9 +64,8 @@ export function CampaignReport() {
         status: calcularStatus(cplEfetivo, mediaCpl, c.frequency, c.ctr, c.leads + c.conversations, mediaLeads),
       };
     });
-  }, [filteredRows, config.adVideoMap, resumo, campanhasOcultas]);
+  }, [filteredRows, config.adVideoMap, bmContext, resumo, campanhasOcultas]);
 
-  // ── Seleção ──────────────────────────────────────────────────
   const toggleSelect = (nome) => {
     setSelected(prev => {
       const next = new Set(prev);
@@ -95,7 +92,6 @@ export function CampaignReport() {
     setMostrarOcultas(false);
   };
 
-  // ── Colunas da tabela ────────────────────────────────────────
   const columns = [
     {
       key: '__check__',
@@ -130,18 +126,9 @@ export function CampaignReport() {
     },
     { key: 'fluxo', label: 'Fluxo', sortable: false, render: v => <FluxoBadge fluxo={v} /> },
     { key: 'temperatura', label: 'Temp.', sortable: false, render: v => <TempBadge temperatura={v} /> },
-    {
-      key: 'geo', label: 'Geo',
-      render: v => <span className="text-xs text-gray-500">{v}</span>
-    },
-    {
-      key: 'verbaSemanal', label: 'Planejado',
-      render: v => <span className="font-mono text-xs text-gray-600">{fmtBRL(v)}</span>
-    },
-    {
-      key: 'spend', label: 'Investido',
-      render: v => <span className="font-mono text-xs font-semibold">{fmtBRL(v)}</span>
-    },
+    { key: 'geo', label: 'Geo', render: v => <span className="text-xs text-gray-500">{v}</span> },
+    { key: 'verbaSemanal', label: 'Planejado', render: v => <span className="font-mono text-xs text-gray-600">{fmtBRL(v)}</span> },
+    { key: 'spend', label: 'Investido', render: v => <span className="font-mono text-xs font-semibold">{fmtBRL(v)}</span> },
     {
       key: 'pctVerba', label: <Tooltip text="Valor investido ÷ Verba planejada × 100">% Verba</Tooltip>,
       render: v => (
@@ -151,38 +138,16 @@ export function CampaignReport() {
       )
     },
     { key: 'leads', label: 'Leads', render: v => <span className="font-mono text-xs">{fmtNum(v)}</span> },
-    {
-      key: 'conversations', label: 'Conv. WA',
-      render: v => <span className="font-mono text-xs">{fmtNum(v)}</span>
-    },
-    {
-      key: 'costPerLead', label: 'CPL',
-      render: (v, row) => <span className="font-mono text-xs font-semibold">{fmtBRL(v || row.costPerConversation)}</span>
-    },
-    {
-      key: 'frequency', label: 'Freq.',
-      render: v => <span className={`font-mono text-xs ${v > 3.5 ? 'text-red-600 font-bold' : v > 2.5 ? 'text-orange-500' : ''}`}>{fmtNum(v, 1)}</span>
-    },
+    { key: 'conversations', label: 'Conv. WA', render: v => <span className="font-mono text-xs">{fmtNum(v)}</span> },
+    { key: 'costPerLead', label: 'CPL', render: (v, row) => <span className="font-mono text-xs font-semibold">{fmtBRL(v || row.costPerConversation)}</span> },
+    { key: 'frequency', label: 'Freq.', render: v => <span className={`font-mono text-xs ${v > 3.5 ? 'text-red-600 font-bold' : v > 2.5 ? 'text-orange-500' : ''}`}>{fmtNum(v, 1)}</span> },
     {
       key: 'ctr', label: <Tooltip text="Cliques ÷ Alcance × 100">CTR</Tooltip>,
-      render: v => (
-        <span className={`font-mono text-xs ${v < 1 ? 'text-red-500' : v > 2 ? 'text-green-600' : ''}`}>
-          {fmtPct(v, 1)}
-        </span>
-      )
+      render: v => <span className={`font-mono text-xs ${v < 1 ? 'text-red-500' : v > 2 ? 'text-green-600' : ''}`}>{fmtPct(v, 1)}</span>
     },
-    {
-      key: 'taxaLead', label: <Tooltip text="Leads ÷ Alcance × 100">Taxa Lead</Tooltip>,
-      render: v => <span className="font-mono text-xs">{fmtPct(v, 2)}</span>
-    },
-    {
-      key: 'taxaMensagem', label: <Tooltip text="Conversas ÷ Alcance × 100">Taxa Msg</Tooltip>,
-      render: v => <span className="font-mono text-xs">{fmtPct(v, 2)}</span>
-    },
-    {
-      key: 'reach', label: 'Alcance',
-      render: v => <span className="font-mono text-xs">{fmtNum(v)}</span>
-    },
+    { key: 'taxaLead', label: <Tooltip text="Leads ÷ Alcance × 100">Taxa Lead</Tooltip>, render: v => <span className="font-mono text-xs">{fmtPct(v, 2)}</span> },
+    { key: 'taxaMensagem', label: <Tooltip text="Conversas ÷ Alcance × 100">Taxa Msg</Tooltip>, render: v => <span className="font-mono text-xs">{fmtPct(v, 2)}</span> },
+    { key: 'reach', label: 'Alcance', render: v => <span className="font-mono text-xs">{fmtNum(v)}</span> },
     {
       key: 'status', label: 'Status', sortable: false,
       render: (v, row) => row.oculta
@@ -201,7 +166,6 @@ export function CampaignReport() {
 
   return (
     <div className="p-6 space-y-5">
-      {/* Cabeçalho */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Relatório por Campanha</h1>
@@ -218,7 +182,6 @@ export function CampaignReport() {
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          {/* Semanas */}
           <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
             <span className="text-gray-500 font-medium">Semana:</span>
             {[1, 2, 3, 4].map(w => (
@@ -231,7 +194,7 @@ export function CampaignReport() {
           <select value={activeFluxo} onChange={e => setActiveFluxo(e.target.value)}
             className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white">
             <option value="todos">Todos os fluxos</option>
-            {Object.entries(FLUXOS).map(([id, f]) => <option key={id} value={id}>{f.nome}</option>)}
+            {Object.entries(fluxos).map(([id, f]) => <option key={id} value={id}>{f.nome}</option>)}
           </select>
           <select value={activeTemp} onChange={e => setActiveTemp(e.target.value)}
             className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white">
@@ -239,6 +202,7 @@ export function CampaignReport() {
             <option value="quente">🔴 Quente</option>
             <option value="morno">🟠 Morno</option>
             <option value="frio">🔵 Frio</option>
+            <option value="remarketing">🔁 Remarketing</option>
           </select>
           <button onClick={() => exportCSV(campanhaData)}
             className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700">
@@ -247,44 +211,30 @@ export function CampaignReport() {
         </div>
       </div>
 
-      {/* Barra de ações quando há seleção */}
       {selected.size > 0 && (
         <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-          <span className="text-sm font-semibold text-amber-800">
-            {selected.size} campanha(s) selecionada(s)
-          </span>
-          <button
-            onClick={handleOcultar}
-            className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-semibold"
-          >
+          <span className="text-sm font-semibold text-amber-800">{selected.size} campanha(s) selecionada(s)</span>
+          <button onClick={handleOcultar} className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-semibold">
             <EyeOff size={14} /> Ocultar dos relatórios
           </button>
-          <button
-            onClick={() => setSelected(new Set())}
-            className="text-sm px-3 py-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600"
-          >
+          <button onClick={() => setSelected(new Set())} className="text-sm px-3 py-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600">
             Cancelar
           </button>
         </div>
       )}
 
-      {/* Aviso modo gerenciar ocultas */}
       {mostrarOcultas && campanhasOcultas.length > 0 && selected.size === 0 && (
         <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
           <Eye size={16} className="text-blue-500 shrink-0" />
           <span className="text-sm text-blue-800">
             Mostrando <strong>{campanhasOcultas.length}</strong> campanha(s) oculta(s). Clique em <strong>Restaurar</strong> na linha ou:
           </span>
-          <button
-            onClick={handleRestaurarTodas}
-            className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold ml-auto shrink-0"
-          >
+          <button onClick={handleRestaurarTodas} className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold ml-auto shrink-0">
             <RotateCcw size={13} /> Restaurar todas
           </button>
         </div>
       )}
 
-      {/* Legenda de status */}
       <div className="flex flex-wrap gap-3 text-xs">
         {[
           { label: '🟢 Escalar', desc: 'CPL < 70% da média + leads acima da média' },

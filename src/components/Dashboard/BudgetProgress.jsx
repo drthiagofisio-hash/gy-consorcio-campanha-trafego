@@ -1,6 +1,5 @@
-import { FLUXOS, CAMPANHAS } from '../../data/campaigns';
+import { useApp } from '../../context/AppContext';
 import { fmtBRL, fmtPct } from '../../utils/calculations';
-import { encontrarCampanha } from '../../data/campaigns';
 
 function ProgressBar({ value, max, cor = 'blue' }) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
@@ -11,6 +10,7 @@ function ProgressBar({ value, max, cor = 'blue' }) {
     red:    'bg-red-500',
     purple: 'bg-purple-500',
     teal:   'bg-teal-500',
+    indigo: 'bg-indigo-500',
   };
   const danger = pct > 100;
   return (
@@ -24,10 +24,13 @@ function ProgressBar({ value, max, cor = 'blue' }) {
 }
 
 export function BudgetProgress({ rows }) {
-  const fluxosData = Object.entries(FLUXOS).map(([fluxoId, fluxo]) => {
+  const { fluxos, bmContext, verbaTotalSemanal } = useApp();
+  const { campanhas, encontrarCampanhaFn } = bmContext;
+
+  const fluxosData = Object.entries(fluxos).map(([fluxoId, fluxo]) => {
     const fluxoRows = rows.filter(row => {
-      const campDef = encontrarCampanha(row.campaignName) ||
-        CAMPANHAS.find(c => c.id === row.campaignId);
+      const campDef = encontrarCampanhaFn(row.campaignName) ||
+        campanhas.find(c => c.id === row.campaignId);
       return campDef?.fluxo === fluxoId;
     });
     const invested = fluxoRows.reduce((s, r) => s + (r.spend || 0), 0);
@@ -36,8 +39,7 @@ export function BudgetProgress({ rows }) {
   });
 
   const totalInvested = rows.reduce((s, r) => s + (r.spend || 0), 0);
-  const totalPlanned = 2725;
-  const totalPct = (totalInvested / totalPlanned) * 100;
+  const totalPct = verbaTotalSemanal > 0 ? (totalInvested / verbaTotalSemanal) * 100 : 0;
 
   const fluxoColors = { bittrex: 'purple', grupoGT: 'teal', davi: 'indigo' };
   const fluxoColorClasses = {
@@ -55,10 +57,10 @@ export function BudgetProgress({ rows }) {
         <div className="flex justify-between items-center mb-1.5">
           <span className="text-sm font-semibold text-gray-700">Total Geral</span>
           <span className="text-sm font-bold text-gray-900">
-            {fmtBRL(totalInvested)} <span className="text-gray-400 font-normal">/ {fmtBRL(totalPlanned)}</span>
+            {fmtBRL(totalInvested)} <span className="text-gray-400 font-normal">/ {fmtBRL(verbaTotalSemanal)}</span>
           </span>
         </div>
-        <ProgressBar value={totalInvested} max={totalPlanned} cor={totalPct > 100 ? 'red' : 'blue'} />
+        <ProgressBar value={totalInvested} max={verbaTotalSemanal} cor={totalPct > 100 ? 'red' : 'blue'} />
         <div className="flex justify-end mt-1">
           <span className={`text-xs font-medium ${totalPct > 100 ? 'text-red-600' : totalPct > 90 ? 'text-orange-600' : 'text-green-600'}`}>
             {fmtPct(totalPct, 1)} utilizado
@@ -72,7 +74,7 @@ export function BudgetProgress({ rows }) {
           <div key={fluxoId}>
             <div className="flex justify-between items-center mb-1.5">
               <div className="flex items-center gap-2">
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${fluxoColorClasses[fluxoId]}`}>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${fluxoColorClasses[fluxoId] || 'bg-gray-100 text-gray-600'}`}>
                   {fluxo.percentual}%
                 </span>
                 <span className="text-sm text-gray-700">{fluxo.nome}</span>

@@ -1,23 +1,24 @@
 import { useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { agregarPorVideo, fmtBRL, fmtPct, fmtNum } from '../../utils/calculations';
-import { VIDEOS } from '../../data/videos';
-import { CAMPANHAS } from '../../data/campaigns';
 import { TempBadge } from '../ui/Badge';
 import { Film, Trophy, Target, TrendingUp } from 'lucide-react';
 
-function VideoCard({ vData, rank }) {
+function VideoCard({ vData, campanhas }) {
   const hasData = vData && vData.totalResult > 0;
-  const medalha = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null;
 
   const tempColor = {
-    quente: 'border-red-200 bg-red-50',
-    morno: 'border-orange-200 bg-orange-50',
-    frio: 'border-blue-200 bg-blue-50',
+    quente:      'border-red-200 bg-red-50',
+    morno:       'border-orange-200 bg-orange-50',
+    frio:        'border-blue-200 bg-blue-50',
+    remarketing: 'border-violet-200 bg-violet-50',
   };
 
+  const rank = vData._rank;
+  const medalha = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null;
+
   return (
-    <div className={`rounded-xl border-2 p-4 ${tempColor[vData?.temperatura || 'frio']} hover:shadow-md transition-shadow`}>
+    <div className={`rounded-xl border-2 p-4 ${tempColor[vData?.temperatura] || tempColor.frio} hover:shadow-md transition-shadow`}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-lg bg-white shadow-sm flex items-center justify-center">
@@ -27,6 +28,9 @@ function VideoCard({ vData, rank }) {
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-purple-700">{vData?.videoId}</span>
               {medalha && <span className="text-base">{medalha}</span>}
+              {vData?.emBreve && (
+                <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">Em breve</span>
+              )}
             </div>
             <TempBadge temperatura={vData?.temperatura} />
           </div>
@@ -59,7 +63,9 @@ function VideoCard({ vData, rank }) {
         </div>
       ) : (
         <div className="bg-white/60 rounded-lg p-3 text-center mb-3">
-          <p className="text-xs text-gray-400">Sem dados na semana selecionada</p>
+          <p className="text-xs text-gray-400">
+            {vData?.emBreve ? 'Aguardando gravação' : 'Sem dados na semana selecionada'}
+          </p>
         </div>
       )}
 
@@ -67,11 +73,11 @@ function VideoCard({ vData, rank }) {
       <div>
         <p className="text-xs text-gray-500 font-medium mb-1.5">Campanhas vinculadas:</p>
         <div className="flex flex-wrap gap-1">
-          {(vData?.campanhas || VIDEOS.find(v => v.id === vData?.videoId)?.campanhas || []).map(cId => {
-            const camp = CAMPANHAS.find(c => c.id === cId);
+          {(vData?.campanhas || []).map(cId => {
+            const camp = campanhas.find(c => c.id === cId);
             return (
               <span key={cId} className="text-xs bg-white border border-gray-200 rounded px-1.5 py-0.5 text-gray-600">
-                {camp?.nome?.replace('RAB_', '') || cId}
+                {camp?.nome?.replace(/^(RAB_|EXC_)/, '') || cId}
               </span>
             );
           })}
@@ -82,27 +88,36 @@ function VideoCard({ vData, rank }) {
 }
 
 export function CreativesMap() {
-  const { weeklyData, activeWeek, setActiveWeek, config } = useApp();
+  const { weeklyData, activeWeek, setActiveWeek, config, videos, campanhas, bmContext } = useApp();
 
   const rows = useMemo(() => weeklyData[activeWeek] || [], [weeklyData, activeWeek]);
 
   const videoData = useMemo(() => {
-    const aggr = agregarPorVideo(rows, config.adVideoMap);
-    // Garante que todos os vídeos aparecem, mesmo sem dados
+    const aggr = agregarPorVideo(rows, config.adVideoMap, bmContext);
     const map = Object.fromEntries(aggr.map(v => [v.videoId, v]));
-    return VIDEOS.map(v => map[v.id] || { ...v, videoId: v.id, totalResult: 0, spend: 0, cpl: null, taxaLead: 0, leads: 0, conversations: 0, campanhas: v.campanhas });
-  }, [rows, config.adVideoMap]);
+    return videos.map(v => map[v.id] || {
+      ...v,
+      videoId: v.id,
+      totalResult: 0,
+      spend: 0,
+      cpl: null,
+      taxaLead: 0,
+      leads: 0,
+      conversations: 0,
+      campanhas: v.campanhas,
+    });
+  }, [rows, config.adVideoMap, bmContext, videos]);
 
   const rankedByRPL = [...videoData]
     .filter(v => v.cpl !== null)
     .sort((a, b) => (a.cpl || 999) - (b.cpl || 999));
 
-  const getRank = (videoId) => {
-    const idx = rankedByRPL.findIndex(v => v.videoId === videoId);
-    return idx >= 0 ? idx + 1 : null;
-  };
+  // Adiciona rank a cada vídeo
+  const videoDataComRank = videoData.map(v => {
+    const idx = rankedByRPL.findIndex(r => r.videoId === v.videoId);
+    return { ...v, _rank: idx >= 0 ? idx + 1 : null };
+  });
 
-  // Resumo geral de criativos
   const totalInvestido = videoData.reduce((s, v) => s + (v.spend || 0), 0);
   const totalResultados = videoData.reduce((s, v) => s + (v.totalResult || 0), 0);
   const melhorVideo = rankedByRPL[0];
@@ -164,7 +179,7 @@ export function CreativesMap() {
               <span className="text-base w-8 text-center">
                 {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
               </span>
-              <span className="text-sm font-semibold text-purple-700 w-8">{v.videoId}</span>
+              <span className="text-sm font-semibold text-purple-700 w-12">{v.videoId}</span>
               <span className="text-sm text-gray-700 flex-1">{v.nome}</span>
               <TempBadge temperatura={v.temperatura} />
               <span className="font-mono text-sm font-bold text-gray-800 w-20 text-right">{fmtBRL(v.cpl)}</span>
@@ -176,8 +191,8 @@ export function CreativesMap() {
 
       {/* Grid de cards de vídeos */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {videoData.map(v => (
-          <VideoCard key={v.videoId} vData={v} rank={getRank(v.videoId)} />
+        {videoDataComRank.map(v => (
+          <VideoCard key={v.videoId} vData={v} campanhas={campanhas} />
         ))}
       </div>
     </div>

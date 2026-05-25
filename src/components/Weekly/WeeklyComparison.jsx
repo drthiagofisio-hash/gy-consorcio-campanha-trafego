@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { calcularResumo, agregarPorCampanha, variacao, fmtBRL, fmtPct, fmtNum } from '../../utils/calculations';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { CAMPANHAS } from '../../data/campaigns';
 import { FluxoBadge, TempBadge } from '../ui/Badge';
 
 function VarCell({ valor, inverter = false, formatFn }) {
@@ -20,24 +19,23 @@ function VarCell({ valor, inverter = false, formatFn }) {
 }
 
 export function WeeklyComparison() {
-  const { weeklyData } = useApp();
+  const { weeklyData, campanhas, bmContext } = useApp();
 
   const semanas = [1, 2, 3, 4];
 
   const resumoPorSemana = useMemo(() =>
-    Object.fromEntries(semanas.map(w => [w, calcularResumo(weeklyData[w] || [])])),
-    [weeklyData]
+    Object.fromEntries(semanas.map(w => [w, calcularResumo(weeklyData[w] || [], bmContext)])),
+    [weeklyData, bmContext]
   );
 
   const campanhasPorSemana = useMemo(() =>
     Object.fromEntries(semanas.map(w => {
       const rows = weeklyData[w] || [];
-      return [w, agregarPorCampanha(rows)];
+      return [w, agregarPorCampanha(rows, {}, bmContext)];
     })),
-    [weeklyData]
+    [weeklyData, bmContext]
   );
 
-  // Métricas gerais por semana
   const metricas = [
     { key: 'totalSpend', label: 'Total Investido', fmt: fmtBRL, inverter: true },
     { key: 'totalLeads', label: 'Total Leads', fmt: fmtNum, inverter: false },
@@ -131,7 +129,7 @@ export function WeeklyComparison() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {CAMPANHAS.map(camp => {
+              {campanhas.map(camp => {
                 const cplPorSemana = semanas.map(w => {
                   const campData = campanhasPorSemana[w]?.find(c => c.campaignId === camp.id);
                   return campData?.costPerLead || campData?.costPerConversation || null;
@@ -149,7 +147,6 @@ export function WeeklyComparison() {
                     <td className="px-4 py-3"><FluxoBadge fluxo={camp.fluxo} /></td>
                     <td className="px-4 py-3"><TempBadge temperatura={camp.temperatura} /></td>
                     {cplPorSemana.map((cpl, i) => {
-                      // Compara com semana anterior
                       const varSemana = variacao(cpl, cplPorSemana[i - 1]);
                       return (
                         <td key={i} className={`px-4 py-3 text-center ${wColors[i]}`}>

@@ -23,8 +23,8 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-export function WeeklyChart({ weeklyData }) {
-  const data = calcularDadosSemanais(weeklyData);
+export function WeeklyChart({ weeklyData, bmContext = {} }) {
+  const data = calcularDadosSemanais(weeklyData, bmContext);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
@@ -81,7 +81,7 @@ export function CPLChart({ campanhaData }) {
   const data = campanhaData
     .filter(c => c.costPerLead || c.costPerConversation)
     .map(c => ({
-      nome: c.campaignName?.replace('RAB_', '') || c.campaignId,
+      nome: c.campaignName?.replace(/^(RAB_|EXC_)/, '') || c.campaignId,
       cpl: parseFloat((c.costPerLead || c.costPerConversation || 0).toFixed(2)),
       fluxo: c.fluxo,
       fill: fluxoColors[c.fluxo] || '#3b82f6',

@@ -1,9 +1,24 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { MOCK_WEEKLY_DATA, MOCK_IMPORTS } from '../data/mockData';
 
-const EMPTY_WEEKLY_DATA = { 1: [], 2: [], 3: [], 4: [] };
+// Rodobens
+import { CAMPANHAS, FLUXOS, encontrarCampanha } from '../data/campaigns';
+import { VIDEOS } from '../data/videos';
+import { VERBA_TOTAL_SEMANAL, VERBA_TOTAL_CAMPANHA } from '../data/campaigns';
 
-const DEFAULT_SEGMENTACAO = [
+// Excala
+import {
+  CAMPANHAS_EXCALA, FLUXOS_EXCALA, encontrarCampanhaExcala,
+  DEFAULT_SEGMENTACAO_EXCALA,
+  VERBA_LIQUIDA_SEMANAL_EXCALA, VERBA_TOTAL_CAMPANHA_EXCALA,
+} from '../data/campaigns_excala';
+import { VIDEOS_EXCALA } from '../data/videos_excala';
+
+const EMPTY_WEEKLY_DATA = { 1: [], 2: [], 3: [], 4: [] };
+const STORAGE_KEY = 'gt_consorcio_v2';
+
+// ── Segmentação padrão Rodobens ───────────────────────────────
+const DEFAULT_SEGMENTACAO_RODOBENS = [
   {
     temperatura: 'quente',
     emoji: '🔴',
@@ -132,61 +147,78 @@ const DEFAULT_SEGMENTACAO = [
   },
 ];
 
-const AppContext = createContext(null);
-
-const DEFAULT_CONFIG = {
+// ── Configs padrão por BM ─────────────────────────────────────
+const DEFAULT_CONFIG_RODOBENS = {
   clientName: 'GT Consórcios',
   bmName: 'Rodobens',
-  cplTargets: {
-    bittrex: 20,
-    grupoGT: 15,
-    davi: 18,
-  },
+  cplTargets: { bittrex: 20, grupoGT: 15, davi: 18 },
   adVideoMap: {
-    // Mapeamento pré-configurado dos anúncios mock
-    'V1_3Formas_WA03': 'V1',
-    'V1_3Formas_WA04': 'V1',
-    'V1_3Formas_FORM02': 'V1',
-    'V2_AluguelDisfarcado_WA03': 'V2',
-    'V2_AluguelDisfarcado_WA04': 'V2',
-    'V2_AluguelDisfarcado_FORM02': 'V2',
-    'V2_AluguelDisfarcado_DAVI02': 'V2',
-    'V3_ErroFinanceiro_WA03': 'V3',
-    'V3_ErroFinanceiro_FORM02': 'V3',
-    'V3_ErroFinanceiro_DAVI02': 'V3',
-    'V4_PlanSemLance_WA01': 'V4',
-    'V4_PlanSemLance_WA02': 'V4',
-    'V4_PlanSemLance_FORM01': 'V4',
-    'V5_TelaDivididaBYD_WA05': 'V5',
-    'V5_TelaDivididaBYD_WA06': 'V5',
-    'V5_TelaDivididaBYD_DAVI01': 'V5',
-    'V6_TelaDivididaCorolla_WA05': 'V6',
-    'V6_TelaDivididaCorolla_FORM03': 'V6',
-    'V7_TelaDivididaPicape_WA05': 'V7',
-    'V7_TelaDivididaPicape_WA06': 'V7',
-    'V7_TelaDivididaPicape_FORM03': 'V7',
-    'V8_TraduzindoConsorcio_WA01': 'V8',
-    'V8_TraduzindoConsorcio_WA02': 'V8',
-    'V8_TraduzindoConsorcio_FORM01': 'V8',
-    'V9_VideoHaval_WA06': 'V9',
-    'V9_VideoHaval_DAVI01': 'V9',
-    // RAB_WA_07 — LKL 1% Envolveu + Seguidor
-    'V1_3Formas_WA07': 'V1',
-    'V2_AluguelDisfarcado_WA07': 'V2',
-    'V3_ErroFinanceiro_WA07': 'V3',
-    // RAB_WA_08 — LKL 1% Visitou + Vídeo
-    'V5_TelaDivididaBYD_WA08': 'V5',
-    'V6_TelaDivididaCorolla_WA08': 'V6',
-    'V7_TelaDivididaPicape_WA08': 'V7',
+    'V1_3Formas_WA03': 'V1', 'V1_3Formas_WA04': 'V1', 'V1_3Formas_FORM02': 'V1',
+    'V2_AluguelDisfarcado_WA03': 'V2', 'V2_AluguelDisfarcado_WA04': 'V2',
+    'V2_AluguelDisfarcado_FORM02': 'V2', 'V2_AluguelDisfarcado_DAVI02': 'V2',
+    'V3_ErroFinanceiro_WA03': 'V3', 'V3_ErroFinanceiro_FORM02': 'V3', 'V3_ErroFinanceiro_DAVI02': 'V3',
+    'V4_PlanSemLance_WA01': 'V4', 'V4_PlanSemLance_WA02': 'V4', 'V4_PlanSemLance_FORM01': 'V4',
+    'V5_TelaDivididaBYD_WA05': 'V5', 'V5_TelaDivididaBYD_WA06': 'V5', 'V5_TelaDivididaBYD_DAVI01': 'V5',
+    'V6_TelaDivididaCorolla_WA05': 'V6', 'V6_TelaDivididaCorolla_FORM03': 'V6',
+    'V7_TelaDivididaPicape_WA05': 'V7', 'V7_TelaDivididaPicape_WA06': 'V7', 'V7_TelaDivididaPicape_FORM03': 'V7',
+    'V8_TraduzindoConsorcio_WA01': 'V8', 'V8_TraduzindoConsorcio_WA02': 'V8', 'V8_TraduzindoConsorcio_FORM01': 'V8',
+    'V9_VideoHaval_WA06': 'V9', 'V9_VideoHaval_DAVI01': 'V9',
+    'V1_3Formas_WA07': 'V1', 'V2_AluguelDisfarcado_WA07': 'V2', 'V3_ErroFinanceiro_WA07': 'V3',
+    'V5_TelaDivididaBYD_WA08': 'V5', 'V6_TelaDivididaCorolla_WA08': 'V6', 'V7_TelaDivididaPicape_WA08': 'V7',
   },
   columnMap: {},
 };
 
+const DEFAULT_CONFIG_EXCALA = {
+  clientName: 'GT Consórcios',
+  bmName: 'GT Consórcios Excala',
+  cplTargets: { bittrex: 20, grupoGT: 15, davi: 18 },
+  adVideoMap: {},
+  columnMap: {},
+};
+
+// ── Estado inicial por BM ─────────────────────────────────────
+const DEFAULT_BM_STATES = {
+  rodobens: {
+    weeklyData: EMPTY_WEEKLY_DATA,
+    imports: [],
+    campanhasOcultas: [],
+    config: DEFAULT_CONFIG_RODOBENS,
+    segmentacao: DEFAULT_SEGMENTACAO_RODOBENS,
+  },
+  excala: {
+    weeklyData: EMPTY_WEEKLY_DATA,
+    imports: [],
+    campanhasOcultas: [],
+    config: DEFAULT_CONFIG_EXCALA,
+    segmentacao: DEFAULT_SEGMENTACAO_EXCALA,
+  },
+};
+
+// ── localStorage ──────────────────────────────────────────────
 function loadFromStorage() {
   try {
-    const raw = localStorage.getItem('gt_consorcio_data');
-    if (!raw) return null;
-    return JSON.parse(raw);
+    // Tenta novo formato primeiro
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+
+    // Migra do formato antigo (só tinha Rodobens)
+    const oldRaw = localStorage.getItem('gt_consorcio_data');
+    if (oldRaw) {
+      const old = JSON.parse(oldRaw);
+      return {
+        activeBM: 'rodobens',
+        rodobens: {
+          config: old.config || null,
+          weeklyData: old.weeklyData || null,
+          imports: old.imports || [],
+          segmentacao: old.segmentacao || null,
+          campanhasOcultas: old.campanhasOcultas || [],
+        },
+        excala: null,
+      };
+    }
+    return null;
   } catch {
     return null;
   }
@@ -194,58 +226,122 @@ function loadFromStorage() {
 
 function saveToStorage(data) {
   try {
-    localStorage.setItem('gt_consorcio_data', JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (e) {
     console.error('Erro ao salvar no localStorage', e);
   }
 }
 
+const AppContext = createContext(null);
+
 export function AppProvider({ children }) {
-  const [config, setConfig] = useState(DEFAULT_CONFIG);
-  const [segmentacao, setSegmentacao] = useState(DEFAULT_SEGMENTACAO);
-  const [campanhasOcultas, setCampanhasOcultas] = useState([]);
-  const [weeklyData, setWeeklyData] = useState(EMPTY_WEEKLY_DATA);
-  const [imports, setImports] = useState([]);
+  const [activeBM, setActiveBM] = useState('rodobens');
+  const [bmStates, setBmStates] = useState(DEFAULT_BM_STATES);
+
+  // Filtros globais (compartilhados entre BMs)
   const [activeWeek, setActiveWeek] = useState(1);
   const [activeFluxo, setActiveFluxo] = useState('todos');
   const [activeTemp, setActiveTemp] = useState('todos');
   const [loading, setLoading] = useState(false);
 
-  // Carrega dados do localStorage na inicialização
+  // ── Carrega do localStorage na inicialização ──────────────────
   useEffect(() => {
     const stored = loadFromStorage();
-    if (stored) {
-      if (stored.config) setConfig(c => ({ ...DEFAULT_CONFIG, ...stored.config, cplTargets: { ...DEFAULT_CONFIG.cplTargets, ...(stored.config.cplTargets || {}) }, adVideoMap: { ...DEFAULT_CONFIG.adVideoMap, ...(stored.config.adVideoMap || {}) } }));
-      if (stored.weeklyData && Object.keys(stored.weeklyData).length > 0) setWeeklyData(stored.weeklyData);
-      if (stored.imports) setImports(stored.imports);
-      if (stored.segmentacao) setSegmentacao(stored.segmentacao);
-      if (stored.campanhasOcultas) setCampanhasOcultas(stored.campanhasOcultas);
-    }
+    if (!stored) return;
+
+    if (stored.activeBM) setActiveBM(stored.activeBM);
+
+    setBmStates(prev => {
+      const next = { ...prev };
+
+      ['rodobens', 'excala'].forEach(bm => {
+        const s = stored[bm];
+        if (!s) return;
+        const defaults = DEFAULT_BM_STATES[bm];
+        next[bm] = {
+          weeklyData: (s.weeklyData && Object.keys(s.weeklyData).length > 0) ? s.weeklyData : defaults.weeklyData,
+          imports: s.imports || defaults.imports,
+          campanhasOcultas: s.campanhasOcultas || defaults.campanhasOcultas,
+          config: s.config
+            ? {
+                ...defaults.config,
+                ...s.config,
+                cplTargets: { ...defaults.config.cplTargets, ...(s.config.cplTargets || {}) },
+                adVideoMap: { ...defaults.config.adVideoMap, ...(s.config.adVideoMap || {}) },
+              }
+            : defaults.config,
+          segmentacao: s.segmentacao || defaults.segmentacao,
+        };
+      });
+
+      return next;
+    });
   }, []);
 
-  // Persiste no localStorage sempre que muda
+  // ── Persiste no localStorage sempre que muda ──────────────────
   useEffect(() => {
-    saveToStorage({ config, weeklyData, imports, segmentacao, campanhasOcultas });
-  }, [config, weeklyData, imports, segmentacao, campanhasOcultas]);
+    saveToStorage({ activeBM, rodobens: bmStates.rodobens, excala: bmStates.excala });
+  }, [activeBM, bmStates]);
 
+  // ── Utilitário para atualizar estado da BM ativa ──────────────
+  const updateCurrentBM = useCallback((updates) => {
+    setBmStates(prev => ({
+      ...prev,
+      [activeBM]: { ...prev[activeBM], ...updates },
+    }));
+  }, [activeBM]);
+
+  // ── Atalhos para o estado da BM atual ────────────────────────
+  const currentState = bmStates[activeBM];
+  const weeklyData     = currentState.weeklyData;
+  const imports        = currentState.imports;
+  const config         = currentState.config;
+  const segmentacao    = currentState.segmentacao;
+  const campanhasOcultas = currentState.campanhasOcultas;
+
+  // ── Dados específicos da BM ativa ────────────────────────────
+  const campanhas           = activeBM === 'excala' ? CAMPANHAS_EXCALA     : CAMPANHAS;
+  const fluxos              = activeBM === 'excala' ? FLUXOS_EXCALA        : FLUXOS;
+  const videos              = activeBM === 'excala' ? VIDEOS_EXCALA        : VIDEOS;
+  const encontrarCampanhaFn = activeBM === 'excala' ? encontrarCampanhaExcala : encontrarCampanha;
+  const verbaTotalSemanal   = activeBM === 'excala' ? VERBA_LIQUIDA_SEMANAL_EXCALA : VERBA_TOTAL_SEMANAL;
+  const verbaTotalCampanha  = activeBM === 'excala' ? VERBA_TOTAL_CAMPANHA_EXCALA  : VERBA_TOTAL_CAMPANHA;
+  const bmLabel             = activeBM === 'excala' ? 'GT Excala' : 'Rodobens';
+  const impostoInfo         = activeBM === 'excala' ? { tem: true, pct: 12 } : { tem: false, pct: 0 };
+
+  // ── bmContext — passado às funções de cálculo ─────────────────
+  const bmContext = useMemo(() => ({
+    campanhas,
+    fluxos,
+    videos,
+    encontrarCampanhaFn,
+  }), [campanhas, fluxos, videos, encontrarCampanhaFn]);
+
+  // ── Mutadores ─────────────────────────────────────────────────
   const updateConfig = useCallback((updates) => {
-    setConfig(prev => ({ ...prev, ...updates }));
-  }, []);
+    updateCurrentBM({
+      config: { ...bmStates[activeBM].config, ...updates },
+    });
+  }, [updateCurrentBM, bmStates, activeBM]);
 
   const updateSegmentacao = useCallback((nova) => {
-    setSegmentacao(nova);
-  }, []);
+    updateCurrentBM({ segmentacao: nova });
+  }, [updateCurrentBM]);
 
   const ocultarCampanhas = useCallback((nomes) => {
-    setCampanhasOcultas(prev => [...new Set([...prev, ...nomes])]);
-  }, []);
+    updateCurrentBM({
+      campanhasOcultas: [...new Set([...bmStates[activeBM].campanhasOcultas, ...nomes])],
+    });
+  }, [updateCurrentBM, bmStates, activeBM]);
 
   const restaurarCampanhas = useCallback((nomes) => {
-    setCampanhasOcultas(prev => prev.filter(n => !nomes.includes(n)));
-  }, []);
+    updateCurrentBM({
+      campanhasOcultas: bmStates[activeBM].campanhasOcultas.filter(n => !nomes.includes(n)),
+    });
+  }, [updateCurrentBM, bmStates, activeBM]);
 
   const importWeekData = useCallback((week, rows, filename) => {
-    setWeeklyData(prev => ({ ...prev, [week]: rows }));
+    const newWeeklyData = { ...bmStates[activeBM].weeklyData, [week]: rows };
     const importEntry = {
       id: `import_${Date.now()}`,
       week,
@@ -253,21 +349,48 @@ export function AppProvider({ children }) {
       filename,
       rowCount: rows.length,
     };
-    setImports(prev => {
-      const sem = prev.filter(i => i.week !== week);
-      return [...sem, importEntry].sort((a, b) => a.week - b.week);
-    });
-  }, []);
+    const sem = bmStates[activeBM].imports.filter(i => i.week !== week);
+    const newImports = [...sem, importEntry].sort((a, b) => a.week - b.week);
+    updateCurrentBM({ weeklyData: newWeeklyData, imports: newImports });
+  }, [updateCurrentBM, bmStates, activeBM]);
 
   const resetToMock = useCallback(() => {
-    setWeeklyData(MOCK_WEEKLY_DATA);
-    setImports(MOCK_IMPORTS);
-    setConfig(DEFAULT_CONFIG);
-    setSegmentacao(DEFAULT_SEGMENTACAO);
-    setCampanhasOcultas([]);
-  }, []);
+    if (activeBM === 'rodobens') {
+      updateCurrentBM({
+        weeklyData: MOCK_WEEKLY_DATA,
+        imports: MOCK_IMPORTS,
+        config: DEFAULT_CONFIG_RODOBENS,
+        segmentacao: DEFAULT_SEGMENTACAO_RODOBENS,
+        campanhasOcultas: [],
+      });
+    } else {
+      updateCurrentBM({
+        weeklyData: EMPTY_WEEKLY_DATA,
+        imports: [],
+        config: DEFAULT_CONFIG_EXCALA,
+        segmentacao: DEFAULT_SEGMENTACAO_EXCALA,
+        campanhasOcultas: [],
+      });
+    }
+  }, [updateCurrentBM, activeBM]);
 
   const value = {
+    // BM switching
+    activeBM,
+    setActiveBM,
+    bmLabel,
+    bmContext,
+    impostoInfo,
+
+    // Dados da BM ativa
+    campanhas,
+    fluxos,
+    videos,
+    encontrarCampanhaFn,
+    verbaTotalSemanal,
+    verbaTotalCampanha,
+
+    // Estado atual
     config,
     updateConfig,
     segmentacao,
@@ -279,6 +402,8 @@ export function AppProvider({ children }) {
     imports,
     importWeekData,
     resetToMock,
+
+    // Filtros globais
     activeWeek,
     setActiveWeek,
     activeFluxo,
