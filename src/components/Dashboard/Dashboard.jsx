@@ -39,14 +39,31 @@ export function Dashboard() {
     const mediaCpl = resumo?.cplMedio || 0;
     const mediaLeads = aggr.length > 0 ? aggr.reduce((s, c) => s + (c.leads + c.conversations), 0) / aggr.length : 0;
 
-    return aggr.map(c => {
-      const cplEfetivo = c.costPerLead || c.costPerConversation;
-      return {
-        ...c,
-        status: calcularStatus(cplEfetivo, mediaCpl, c.frequency, c.ctr, c.leads + c.conversations, mediaLeads),
-      };
-    });
-  }, [filteredRows, config.adVideoMap, bmContext, resumo]);
+    const aggrIds = new Set(aggr.map(c => c.campaignId));
+    const aguardando = (bmContext.campanhas || [])
+      .filter(c => c.iniciaSemana && c.iniciaSemana > activeWeek && !aggrIds.has(c.id))
+      .map(c => ({
+        campaignId: c.id,
+        campaignName: c.nome,
+        fluxo: c.fluxo,
+        temperatura: c.temperatura,
+        spend: 0, leads: 0, conversations: 0, reach: 0,
+        ctr: 0, frequency: 0, totalResult: 0, pctVerba: 0,
+        costPerLead: null, costPerConversation: null,
+        status: { label: 'Aguardando início', cor: 'amber', classe: 'bg-amber-100 text-amber-700', emoji: '⏳' },
+      }));
+
+    return [
+      ...aggr.map(c => {
+        const cplEfetivo = c.costPerLead || c.costPerConversation;
+        return {
+          ...c,
+          status: calcularStatus(cplEfetivo, mediaCpl, c.frequency, c.ctr, c.leads + c.conversations, mediaLeads),
+        };
+      }),
+      ...aguardando,
+    ];
+  }, [filteredRows, config.adVideoMap, bmContext, resumo, activeWeek]);
 
   const alertas = useMemo(() =>
     campanhaData.filter(c => ['Pausar', 'Trocar criativo', 'Escalar'].includes(c.status?.label)),

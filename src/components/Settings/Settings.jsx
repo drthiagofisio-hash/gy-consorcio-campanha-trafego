@@ -96,11 +96,12 @@ export function Settings() {
       <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
         <h3 className="text-sm font-semibold text-gray-700 mb-1">CPL Meta por Fluxo</h3>
         <p className="text-xs text-gray-400 mb-4">O sistema usa esses valores para calcular os status das campanhas</p>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           {[
             { id: 'bittrex', label: 'WhatsApp Bitrix' },
             { id: 'grupoGT', label: 'Formulário Grupo GT' },
             { id: 'davi', label: 'Formulário Davi' },
+            { id: 'eliana', label: 'Formulário Eliana' },
           ].map(f => (
             <div key={f.id}>
               <label className="block text-xs font-medium text-gray-600 mb-1">{f.label}</label>

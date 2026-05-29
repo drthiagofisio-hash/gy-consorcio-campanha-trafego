@@ -1,5 +1,6 @@
 import { useApp } from '../../context/AppContext';
 import { fmtBRL, fmtPct } from '../../utils/calculations';
+import { Wallet, AlertTriangle } from 'lucide-react';
 
 function ProgressBar({ value, max, cor = 'blue' }) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
@@ -23,7 +24,7 @@ function ProgressBar({ value, max, cor = 'blue' }) {
   );
 }
 
-export function BudgetProgress({ rows }) {
+export function BudgetProgress({ rows, saldoAnterior = null }) {
   const { fluxos, bmContext, verbaTotalSemanal } = useApp();
   const { campanhas, encontrarCampanhaFn } = bmContext;
 
@@ -41,11 +42,15 @@ export function BudgetProgress({ rows }) {
   const totalInvested = rows.reduce((s, r) => s + (r.spend || 0), 0);
   const totalPct = verbaTotalSemanal > 0 ? (totalInvested / verbaTotalSemanal) * 100 : 0;
 
-  const fluxoColors = { bittrex: 'purple', grupoGT: 'teal', davi: 'indigo' };
+  const saldoAtual = verbaTotalSemanal - totalInvested;
+  const saldoPositivo = saldoAtual >= 0;
+
+  const fluxoColors = { bittrex: 'purple', grupoGT: 'teal', davi: 'indigo', eliana: 'orange' };
   const fluxoColorClasses = {
     bittrex: 'bg-purple-100 text-purple-700',
     grupoGT: 'bg-teal-100 text-teal-700',
     davi:    'bg-indigo-100 text-indigo-700',
+    eliana:  'bg-amber-100 text-amber-700',
   };
 
   return (
@@ -91,6 +96,56 @@ export function BudgetProgress({ rows }) {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Saldo de Verba */}
+      <div className="mt-5 pt-4 border-t border-gray-100">
+        <div className="flex items-center gap-1.5 mb-3">
+          <Wallet size={13} className="text-gray-400" />
+          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Saldo de Verba</h4>
+        </div>
+
+        <div className={`rounded-xl p-4 flex items-center justify-between ${
+          saldoPositivo
+            ? 'bg-green-50 border border-green-200'
+            : 'bg-red-50 border border-red-200'
+        }`}>
+          <div>
+            <p className="text-xs font-medium text-gray-500">Saldo desta semana</p>
+            <p className={`text-xl font-bold mt-0.5 ${saldoPositivo ? 'text-green-700' : 'text-red-700'}`}>
+              {saldoPositivo ? '+' : ''}{fmtBRL(saldoAtual)}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              {saldoPositivo
+                ? `${fmtBRL(saldoAtual)} ainda disponíveis`
+                : `Orçamento excedido em ${fmtBRL(Math.abs(saldoAtual))}`
+              }
+            </p>
+          </div>
+          <div className={`p-3 rounded-xl ${saldoPositivo ? 'bg-green-100' : 'bg-red-100'}`}>
+            {saldoPositivo
+              ? <Wallet size={22} className="text-green-600" />
+              : <AlertTriangle size={22} className="text-red-600" />
+            }
+          </div>
+        </div>
+
+        {/* Saldo da semana anterior */}
+        {saldoAnterior !== null && (
+          <div className={`mt-2 rounded-lg px-3 py-2.5 flex items-center justify-between ${
+            saldoAnterior >= 0 ? 'bg-gray-50 border border-gray-100' : 'bg-red-50 border border-red-100'
+          }`}>
+            <div>
+              <p className="text-xs text-gray-500 font-medium">Saldo da semana anterior</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {saldoAnterior >= 0 ? 'Verba não utilizada' : 'Excedeu o orçamento'}
+              </p>
+            </div>
+            <span className={`text-sm font-bold ${saldoAnterior >= 0 ? 'text-gray-600' : 'text-red-600'}`}>
+              {saldoAnterior >= 0 ? '+' : ''}{fmtBRL(saldoAnterior)}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

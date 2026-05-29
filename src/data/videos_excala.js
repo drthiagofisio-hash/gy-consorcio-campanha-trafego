@@ -16,14 +16,14 @@ export const VIDEOS_EXCALA = [
     nome: 'Aluguel Disfarçado',
     objecao: 'Financiamento = aluguel, sem entrada',
     temperatura: 'morno',
-    campanhas: ['EXC_WA_02'],
+    campanhas: ['EXC_WA_02', 'GT_ELIANA_01'],
   },
   {
     id: 'V3',
     nome: 'Erro Financeiro',
     objecao: 'Juros abusivos, lances programados',
     temperatura: 'morno',
-    campanhas: ['EXC_WA_02'],
+    campanhas: ['EXC_WA_02', 'GT_ELIANA_01'],
   },
   {
     id: 'V4',
@@ -51,7 +51,7 @@ export const VIDEOS_EXCALA = [
     nome: 'Tela Dividida Picape',
     objecao: 'Hilux/S10/Ranger, conta dos juros dobrados',
     temperatura: 'frio',
-    campanhas: ['EXC_WA_03', 'EXC_DAVI_01'],
+    campanhas: ['EXC_WA_03', 'EXC_DAVI_01', 'GT_ELIANA_01'],
   },
   {
     id: 'V8',

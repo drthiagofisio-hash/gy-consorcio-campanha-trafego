@@ -1,22 +1,24 @@
 // ============================================================
 // DADOS FIXOS DAS CAMPANHAS — GT CONSÓRCIOS / BM GT EXCALA
 // Verba bruta: R$ 2.500/sem | Imposto 12% | Líquido: R$ 2.200/sem
+// Distribuição: 65% WA Bitrix | 20% Form GT | 10% Davi | 5% Eliana
 // ============================================================
 
 export const FLUXOS_EXCALA = {
-  bittrex: { id: 'bittrex', nome: 'WhatsApp Bitrix', percentual: 70, verbaSemanal: 1540.00 },
-  grupoGT: { id: 'grupoGT', nome: 'Formulário Grupo GT', percentual: 20, verbaSemanal: 440.00 },
-  davi:    { id: 'davi',    nome: 'Formulário Davi',    percentual: 10, verbaSemanal: 220.00 },
+  bittrex: { id: 'bittrex', nome: 'WhatsApp Bitrix',      percentual: 65, verbaSemanal: 1430.00 },
+  grupoGT: { id: 'grupoGT', nome: 'Formulário Grupo GT',  percentual: 20, verbaSemanal:  440.00 },
+  davi:    { id: 'davi',    nome: 'Formulário Davi',       percentual: 10, verbaSemanal:  220.00 },
+  eliana:  { id: 'eliana',  nome: 'Formulário Eliana',     percentual:  5, verbaSemanal:  110.00 },
 };
 
 export const CAMPANHAS_EXCALA = [
-  // ── FLUXO 1: WhatsApp Bitrix (70% = R$ 1.540/sem) ────────────
+  // ── FLUXO 1: WhatsApp Bitrix (65% = R$ 1.430/sem) ────────────
   {
     id: 'EXC_WA_01',
     nome: 'EXC_WA_Quente',
     fluxo: 'bittrex',
     temperatura: 'quente',
-    verbaSemanal: 182.00,
+    verbaSemanal: 169.00,
     segmentacao: 'MONTEIRO GT - SE ENVOLVEU 7 + 95% DOS VÍDEOS DE CAMPANHA',
     geo: 'Todo o Ceará',
   },
@@ -25,7 +27,7 @@ export const CAMPANHAS_EXCALA = [
     nome: 'EXC_WA_Morno',
     fluxo: 'bittrex',
     temperatura: 'morno',
-    verbaSemanal: 350.00,
+    verbaSemanal: 325.00,
     segmentacao: 'SE ENVOLVEU 30d + 90d + 365d + VISITARAM PERFIL 30d + 365d + SEGUIDORES + ENGAJARAM 365d',
     geo: 'Todo o Ceará',
   },
@@ -34,7 +36,7 @@ export const CAMPANHAS_EXCALA = [
     nome: 'EXC_WA_Frio',
     fluxo: 'bittrex',
     temperatura: 'frio',
-    verbaSemanal: 924.00,
+    verbaSemanal: 858.00,
     segmentacao: 'LKL 1% dos públicos + Interesses em consórcio, imóveis e investimentos',
     geo: 'Todo o Ceará',
   },
@@ -43,7 +45,7 @@ export const CAMPANHAS_EXCALA = [
     nome: 'EXC_RMK_WhatsApp',
     fluxo: 'bittrex',
     temperatura: 'remarketing',
-    verbaSemanal: 84.00,
+    verbaSemanal: 78.00,
     segmentacao: '75% Vídeos Novas Campanhas + MONTEIRO GT - SE ENVOLVEU 7',
     geo: 'Todo o Ceará',
   },
@@ -75,6 +77,18 @@ export const CAMPANHAS_EXCALA = [
     verbaSemanal: 220.00,
     segmentacao: 'LKL 1% Públicos Frios + Planilha Lead Monteiro GT',
     geo: 'Fortaleza + Região Metropolitana',
+  },
+  // ── FLUXO 4: Formulário Eliana (5% = R$ 110/sem) — inicia S2 ─
+  {
+    id: 'GT_ELIANA_01',
+    nome: 'GT_FORM_Eliana',
+    fluxo: 'eliana',
+    temperatura: 'frio',
+    verbaSemanal: 110.00,
+    segmentacao: 'LKL 1% Públicos Frios + Interesses consórcio, imóveis, veículos',
+    geo: 'Fortaleza + Região Metropolitana',
+    iniciaSemana: 2,
+    cplMeta: 20.00,
   },
 ];
 
@@ -168,6 +182,12 @@ export const DEFAULT_SEGMENTACAO_EXCALA = [
         videos: ['EV2 — Comprando Imóveis sem Pagar Juros', 'EV4 — Produtor Rural 1', 'EV8 — Você Produtor Rural', 'V5 — Tela Dividida BYD', 'V7 — Tela Dividida Picape'],
         localidade: 'Fortaleza + Região Metropolitana',
         campanhas: ['EXC_DAVI_01'],
+      },
+      {
+        publico: 'LKL 1% Públicos Frios + Interesses consórcio, imóveis, veículos — Formulário Eliana (inicia S2)',
+        videos: ['V2 — Aluguel Disfarçado', 'V3 — Erro Financeiro', 'V7 — Tela Dividida Picape'],
+        localidade: 'Fortaleza + Região Metropolitana',
+        campanhas: ['GT_ELIANA_01'],
       },
     ],
   },

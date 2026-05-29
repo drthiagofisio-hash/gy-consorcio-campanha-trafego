@@ -31,8 +31,9 @@ export function FluxoBadge({ fluxo }) {
     bittrex: 'bg-purple-100 text-purple-700',
     grupoGT: 'bg-teal-100 text-teal-700',
     davi:    'bg-indigo-100 text-indigo-700',
+    eliana:  'bg-amber-100 text-amber-700',
   };
-  const labels = { bittrex: 'WhatsApp', grupoGT: 'Form GT', davi: 'Form Davi' };
+  const labels = { bittrex: 'WhatsApp', grupoGT: 'Form GT', davi: 'Form Davi', eliana: 'Form Eliana' };
   return (
     <Badge className={map[fluxo] || 'bg-gray-100 text-gray-600'}>
       {labels[fluxo] || fluxo}
