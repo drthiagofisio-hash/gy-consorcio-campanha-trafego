@@ -17,6 +17,7 @@ export function Dashboard() {
     activeTemp, setActiveTemp,
     config, campanhasOcultas,
     fluxos, bmContext, bmLabel,
+    verbaTotalSemanal,
   } = useApp();
 
   const rows = useMemo(() => {
@@ -51,6 +52,12 @@ export function Dashboard() {
     campanhaData.filter(c => ['Pausar', 'Trocar criativo', 'Escalar'].includes(c.status?.label)),
     [campanhaData]
   );
+
+  const saldoAnterior = useMemo(() => {
+    if (activeWeek <= 1) return null;
+    const totalInvestidoAnterior = rowsAnterior.reduce((s, r) => s + (r.spend || 0), 0);
+    return verbaTotalSemanal - totalInvestidoAnterior;
+  }, [rowsAnterior, verbaTotalSemanal, activeWeek]);
 
   return (
     <div className="p-6 space-y-6">
@@ -131,7 +138,7 @@ export function Dashboard() {
           <WeeklyChart weeklyData={weeklyData} bmContext={bmContext} />
         </div>
         <div>
-          <BudgetProgress rows={filteredRows} />
+          <BudgetProgress rows={filteredRows} saldoAnterior={saldoAnterior} />
         </div>
       </div>
 
