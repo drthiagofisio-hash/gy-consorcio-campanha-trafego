@@ -41,6 +41,8 @@ export function WeeklyComparison() {
     { key: 'totalLeads', label: 'Total Leads', fmt: fmtNum, inverter: false },
     { key: 'totalConversations', label: 'Conversas WA', fmt: fmtNum, inverter: false },
     { key: 'cplMedio', label: 'CPL Médio', fmt: fmtBRL, inverter: true },
+    { key: 'cplConversa', label: 'Custo por Conv. WA', fmt: fmtBRL, inverter: true },
+    { key: 'cplLead', label: 'Custo por Lead', fmt: fmtBRL, inverter: true },
     { key: 'taxaLeadMedia', label: 'Taxa de Lead', fmt: (v) => fmtPct(v, 2), inverter: false },
     { key: 'totalReach', label: 'Alcance', fmt: fmtNum, inverter: false },
     { key: 'totalResultadosReais', label: 'Total Resultados', fmt: fmtNum, inverter: false },
