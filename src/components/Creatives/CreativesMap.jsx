@@ -1,9 +1,22 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import { agregarPorVideo, fmtBRL, fmtPct, fmtNum } from '../../utils/calculations';
+import { parseMetaCSV, detectVideoId } from '../../utils/csvParser';
 import { TempBadge } from '../ui/Badge';
-import { Film, Trophy, Target, TrendingUp } from 'lucide-react';
+import { Film, Trophy, Target, TrendingUp, Upload, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 
+// ── Monta adVideoMap dinamicamente a partir das linhas de anúncios ──
+function buildAdVideoMap(adsRows, videos) {
+  const map = {};
+  adsRows.forEach(row => {
+    if (!row.adName) return;
+    const videoId = detectVideoId(row.adName, videos);
+    if (videoId) map[row.adName] = videoId;
+  });
+  return map;
+}
+
+// ── Card de cada vídeo ──────────────────────────────────────────
 function VideoCard({ vData, campanhas }) {
   const hasData = vData && vData.totalResult > 0;
 
@@ -69,7 +82,6 @@ function VideoCard({ vData, campanhas }) {
         </div>
       )}
 
-      {/* Campanhas vinculadas */}
       <div>
         <p className="text-xs text-gray-500 font-medium mb-1.5">Campanhas vinculadas:</p>
         <div className="flex flex-wrap gap-1">
@@ -87,13 +99,144 @@ function VideoCard({ vData, campanhas }) {
   );
 }
 
+// ── Painel de import de CSV de anúncios ────────────────────────
+function AdsImportPanel({ activeWeek, adsImports, onImport, videos, bmContext }) {
+  const [dragOver, setDragOver] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [erro, setErro] = useState(null);
+  const [deteccao, setDeteccao] = useState(null);
+
+  const impAtual = adsImports.find(i => i.week === activeWeek);
+
+  const processFile = useCallback(async (file) => {
+    if (!file?.name.endsWith('.csv')) {
+      setErro('O arquivo deve ser um CSV (.csv)');
+      return;
+    }
+    setImporting(true);
+    setErro(null);
+    setDeteccao(null);
+    try {
+      const text = await file.text();
+      const result = parseMetaCSV(text, bmContext);
+      const rows = result.rows.filter(r => r.adName);
+
+      if (rows.length === 0) {
+        setErro('Nenhum anúncio encontrado. Verifique se o CSV foi exportado no nível de Anúncio (não de Campanha).');
+        return;
+      }
+
+      const adMap = buildAdVideoMap(rows, videos);
+      const mapeados = Object.keys(adMap).length;
+      setDeteccao({ total: rows.length, mapeados, filename: file.name });
+      onImport(rows, file.name);
+    } catch (e) {
+      setErro(`Erro ao processar: ${e.message}`);
+    } finally {
+      setImporting(false);
+    }
+  }, [bmContext, videos, onImport]);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    setDragOver(false);
+    processFile(e.dataTransfer.files[0]);
+  }, [processFile]);
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Film size={15} className="text-purple-600" />
+          <span className="text-sm font-semibold text-gray-700">CSV de Anúncios — Semana {activeWeek}</span>
+          <span className="text-xs text-gray-400">(nível de anúncio, não de campanha)</span>
+        </div>
+        {impAtual && (
+          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium flex items-center gap-1">
+            <CheckCircle size={10} /> Importado · {impAtual.rowCount} anúncios
+          </span>
+        )}
+      </div>
+
+      <div className="p-4">
+        {/* Estado de sucesso após import */}
+        {deteccao && (
+          <div className="mb-3 bg-green-50 border border-green-200 rounded-lg px-3 py-2 flex items-center gap-2">
+            <CheckCircle size={14} className="text-green-600" />
+            <span className="text-xs text-green-700 font-medium">
+              {deteccao.total} anúncios importados · {deteccao.mapeados} vídeos detectados automaticamente
+            </span>
+          </div>
+        )}
+
+        {/* Erro */}
+        {erro && (
+          <div className="mb-3 bg-red-50 border border-red-200 rounded-lg px-3 py-2 flex items-center gap-2">
+            <AlertCircle size={14} className="text-red-500" />
+            <span className="text-xs text-red-600">{erro}</span>
+          </div>
+        )}
+
+        {/* Upload */}
+        <div
+          className={`border-2 border-dashed rounded-lg p-5 text-center cursor-pointer transition-all ${
+            dragOver ? 'border-purple-400 bg-purple-50' : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+          } ${importing ? 'opacity-50 pointer-events-none' : ''}`}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          onClick={() => document.getElementById(`ads-csv-s${activeWeek}`).click()}
+        >
+          <input
+            id={`ads-csv-s${activeWeek}`}
+            type="file"
+            accept=".csv"
+            className="hidden"
+            onChange={e => processFile(e.target.files[0])}
+          />
+          {importing ? (
+            <RefreshCw size={20} className="mx-auto text-purple-400 animate-spin mb-2" />
+          ) : (
+            <Upload size={20} className="mx-auto text-gray-300 mb-2" />
+          )}
+          <p className="text-xs font-medium text-gray-600">
+            {importing ? 'Processando...' : impAtual ? 'Reimportar CSV de anúncios' : 'Arraste ou clique para importar CSV de anúncios'}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            No Meta: Gerenciador de Anúncios → selecione nível <strong>Anúncio</strong> → Exportar CSV
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Componente principal ────────────────────────────────────────
 export function CreativesMap() {
-  const { weeklyData, activeWeek, setActiveWeek, config, videos, campanhas, bmContext } = useApp();
+  const {
+    weeklyData, weeklyAdsData, activeWeek, setActiveWeek,
+    config, videos, campanhas, bmContext,
+    adsImports, importWeekAdsData,
+  } = useApp();
 
-  const rows = useMemo(() => weeklyData[activeWeek] || [], [weeklyData, activeWeek]);
+  const rows    = useMemo(() => weeklyData[activeWeek]    || [], [weeklyData, activeWeek]);
+  const adsRows = useMemo(() => weeklyAdsData[activeWeek] || [], [weeklyAdsData, activeWeek]);
 
+  const handleImport = useCallback((rows, filename) => {
+    importWeekAdsData(activeWeek, rows, filename);
+  }, [importWeekAdsData, activeWeek]);
+
+  // Usa dados de anúncios se disponíveis; senão, usa dados de campanha + adVideoMap das config
   const videoData = useMemo(() => {
-    const aggr = agregarPorVideo(rows, config.adVideoMap, bmContext);
+    let aggr;
+    if (adsRows.length > 0) {
+      // Modo ad-level: auto-detecta vídeo pelo nome do anúncio
+      const adMap = buildAdVideoMap(adsRows, videos);
+      aggr = agregarPorVideo(adsRows, adMap, bmContext);
+    } else {
+      // Modo fallback: usa mapeamento manual das Configurações
+      aggr = agregarPorVideo(rows, config.adVideoMap, bmContext);
+    }
     const map = Object.fromEntries(aggr.map(v => [v.videoId, v]));
     return videos.map(v => map[v.id] || {
       ...v,
@@ -106,24 +249,25 @@ export function CreativesMap() {
       conversations: 0,
       campanhas: v.campanhas,
     });
-  }, [rows, config.adVideoMap, bmContext, videos]);
+  }, [rows, adsRows, config.adVideoMap, bmContext, videos]);
 
-  const rankedByRPL = [...videoData]
+  const rankedByCPL = [...videoData]
     .filter(v => v.cpl !== null)
     .sort((a, b) => (a.cpl || 999) - (b.cpl || 999));
 
-  // Adiciona rank a cada vídeo
   const videoDataComRank = videoData.map(v => {
-    const idx = rankedByRPL.findIndex(r => r.videoId === v.videoId);
+    const idx = rankedByCPL.findIndex(r => r.videoId === v.videoId);
     return { ...v, _rank: idx >= 0 ? idx + 1 : null };
   });
 
-  const totalInvestido = videoData.reduce((s, v) => s + (v.spend || 0), 0);
+  const totalInvestido  = videoData.reduce((s, v) => s + (v.spend || 0), 0);
   const totalResultados = videoData.reduce((s, v) => s + (v.totalResult || 0), 0);
-  const melhorVideo = rankedByRPL[0];
+  const melhorVideo     = rankedByCPL[0];
+  const usandoAdsData   = adsRows.length > 0;
 
   return (
     <div className="p-6 space-y-6">
+      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Mapa de Criativos</h1>
@@ -139,6 +283,28 @@ export function CreativesMap() {
           ))}
         </div>
       </div>
+
+      {/* Painel de import de CSV de anúncios */}
+      <AdsImportPanel
+        activeWeek={activeWeek}
+        adsImports={adsImports}
+        onImport={handleImport}
+        videos={videos}
+        bmContext={bmContext}
+      />
+
+      {/* Indicador de fonte dos dados */}
+      {usandoAdsData ? (
+        <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+          <CheckCircle size={13} />
+          Usando dados de <strong>anúncios importados</strong> — vídeos detectados automaticamente pelo nome do anúncio
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <AlertCircle size={13} />
+          Sem CSV de anúncios importado para esta semana — importe acima para ver a performance por criativo
+        </div>
+      )}
 
       {/* Cards de resumo */}
       {melhorVideo && (
@@ -170,26 +336,28 @@ export function CreativesMap() {
         </div>
       )}
 
-      {/* Ranking de vídeos */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Ranking por CPL</h3>
-        <div className="space-y-2">
-          {rankedByRPL.map((v, i) => (
-            <div key={v.videoId} className="flex items-center gap-3 py-2 px-3 bg-gray-50 rounded-lg">
-              <span className="text-base w-8 text-center">
-                {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
-              </span>
-              <span className="text-sm font-semibold text-purple-700 w-12">{v.videoId}</span>
-              <span className="text-sm text-gray-700 flex-1">{v.nome}</span>
-              <TempBadge temperatura={v.temperatura} />
-              <span className="font-mono text-sm font-bold text-gray-800 w-20 text-right">{fmtBRL(v.cpl)}</span>
-              <span className="font-mono text-xs text-gray-400 w-16 text-right">{fmtNum(v.totalResult)} res.</span>
-            </div>
-          ))}
+      {/* Ranking */}
+      {rankedByCPL.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Ranking por CPL</h3>
+          <div className="space-y-2">
+            {rankedByCPL.map((v, i) => (
+              <div key={v.videoId} className="flex items-center gap-3 py-2 px-3 bg-gray-50 rounded-lg">
+                <span className="text-base w-8 text-center">
+                  {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                </span>
+                <span className="text-sm font-semibold text-purple-700 w-12">{v.videoId}</span>
+                <span className="text-sm text-gray-700 flex-1">{v.nome}</span>
+                <TempBadge temperatura={v.temperatura} />
+                <span className="font-mono text-sm font-bold text-gray-800 w-20 text-right">{fmtBRL(v.cpl)}</span>
+                <span className="font-mono text-xs text-gray-400 w-16 text-right">{fmtNum(v.totalResult)} res.</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Grid de cards de vídeos */}
+      {/* Grid de cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {videoDataComRank.map(v => (
           <VideoCard key={v.videoId} vData={v} campanhas={campanhas} />

@@ -181,14 +181,18 @@ const DEFAULT_CONFIG_EXCALA = {
 const DEFAULT_BM_STATES = {
   rodobens: {
     weeklyData: EMPTY_WEEKLY_DATA,
+    weeklyAdsData: EMPTY_WEEKLY_DATA,
     imports: [],
+    adsImports: [],
     campanhasOcultas: [],
     config: DEFAULT_CONFIG_RODOBENS,
     segmentacao: DEFAULT_SEGMENTACAO_RODOBENS,
   },
   excala: {
     weeklyData: EMPTY_WEEKLY_DATA,
+    weeklyAdsData: EMPTY_WEEKLY_DATA,
     imports: [],
+    adsImports: [],
     campanhasOcultas: [],
     config: DEFAULT_CONFIG_EXCALA,
     segmentacao: DEFAULT_SEGMENTACAO_EXCALA,
@@ -260,7 +264,9 @@ export function AppProvider({ children }) {
         const defaults = DEFAULT_BM_STATES[bm];
         next[bm] = {
           weeklyData: (s.weeklyData && Object.keys(s.weeklyData).length > 0) ? s.weeklyData : defaults.weeklyData,
+          weeklyAdsData: (s.weeklyAdsData && Object.keys(s.weeklyAdsData).length > 0) ? s.weeklyAdsData : defaults.weeklyAdsData,
           imports: s.imports || defaults.imports,
+          adsImports: s.adsImports || defaults.adsImports,
           campanhasOcultas: s.campanhasOcultas || defaults.campanhasOcultas,
           config: s.config
             ? {
@@ -294,7 +300,9 @@ export function AppProvider({ children }) {
   // ── Atalhos para o estado da BM atual ────────────────────────
   const currentState = bmStates[activeBM];
   const weeklyData     = currentState.weeklyData;
+  const weeklyAdsData  = currentState.weeklyAdsData  || EMPTY_WEEKLY_DATA;
   const imports        = currentState.imports;
+  const adsImports     = currentState.adsImports     || [];
   const config         = currentState.config;
   const segmentacao    = currentState.segmentacao;
   const campanhasOcultas = currentState.campanhasOcultas;
@@ -354,6 +362,20 @@ export function AppProvider({ children }) {
     updateCurrentBM({ weeklyData: newWeeklyData, imports: newImports });
   }, [updateCurrentBM, bmStates, activeBM]);
 
+  const importWeekAdsData = useCallback((week, rows, filename) => {
+    const newWeeklyAdsData = { ...(bmStates[activeBM].weeklyAdsData || {}), [week]: rows };
+    const importEntry = {
+      id: `ads_import_${Date.now()}`,
+      week,
+      importedAt: new Date().toISOString(),
+      filename,
+      rowCount: rows.length,
+    };
+    const sem = (bmStates[activeBM].adsImports || []).filter(i => i.week !== week);
+    const newAdsImports = [...sem, importEntry].sort((a, b) => a.week - b.week);
+    updateCurrentBM({ weeklyAdsData: newWeeklyAdsData, adsImports: newAdsImports });
+  }, [updateCurrentBM, bmStates, activeBM]);
+
   const resetToMock = useCallback(() => {
     if (activeBM === 'rodobens') {
       updateCurrentBM({
@@ -399,8 +421,11 @@ export function AppProvider({ children }) {
     ocultarCampanhas,
     restaurarCampanhas,
     weeklyData,
+    weeklyAdsData,
     imports,
+    adsImports,
     importWeekData,
+    importWeekAdsData,
     resetToMock,
 
     // Filtros globais
