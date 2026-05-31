@@ -185,6 +185,7 @@ const DEFAULT_BM_STATES = {
     imports: [],
     adsImports: [],
     campanhasOcultas: [],
+    anunciosOcultos: [],
     config: DEFAULT_CONFIG_RODOBENS,
     segmentacao: DEFAULT_SEGMENTACAO_RODOBENS,
   },
@@ -194,6 +195,7 @@ const DEFAULT_BM_STATES = {
     imports: [],
     adsImports: [],
     campanhasOcultas: [],
+    anunciosOcultos: [],
     config: DEFAULT_CONFIG_EXCALA,
     segmentacao: DEFAULT_SEGMENTACAO_EXCALA,
   },
@@ -268,6 +270,7 @@ export function AppProvider({ children }) {
           imports: s.imports || defaults.imports,
           adsImports: s.adsImports || defaults.adsImports,
           campanhasOcultas: s.campanhasOcultas || defaults.campanhasOcultas,
+          anunciosOcultos: s.anunciosOcultos || defaults.anunciosOcultos,
           config: s.config
             ? {
                 ...defaults.config,
@@ -299,13 +302,14 @@ export function AppProvider({ children }) {
 
   // ── Atalhos para o estado da BM atual ────────────────────────
   const currentState = bmStates[activeBM];
-  const weeklyData     = currentState.weeklyData;
-  const weeklyAdsData  = currentState.weeklyAdsData  || EMPTY_WEEKLY_DATA;
-  const imports        = currentState.imports;
-  const adsImports     = currentState.adsImports     || [];
-  const config         = currentState.config;
-  const segmentacao    = currentState.segmentacao;
+  const weeklyData       = currentState.weeklyData;
+  const weeklyAdsData    = currentState.weeklyAdsData  || EMPTY_WEEKLY_DATA;
+  const imports          = currentState.imports;
+  const adsImports       = currentState.adsImports     || [];
+  const config           = currentState.config;
+  const segmentacao      = currentState.segmentacao;
   const campanhasOcultas = currentState.campanhasOcultas;
+  const anunciosOcultos  = currentState.anunciosOcultos || [];
 
   // ── Dados específicos da BM ativa ────────────────────────────
   const campanhas           = activeBM === 'excala' ? CAMPANHAS_EXCALA     : CAMPANHAS;
@@ -345,6 +349,18 @@ export function AppProvider({ children }) {
   const restaurarCampanhas = useCallback((nomes) => {
     updateCurrentBM({
       campanhasOcultas: bmStates[activeBM].campanhasOcultas.filter(n => !nomes.includes(n)),
+    });
+  }, [updateCurrentBM, bmStates, activeBM]);
+
+  const ocultarAnuncios = useCallback((nomes) => {
+    updateCurrentBM({
+      anunciosOcultos: [...new Set([...(bmStates[activeBM].anunciosOcultos || []), ...nomes])],
+    });
+  }, [updateCurrentBM, bmStates, activeBM]);
+
+  const restaurarAnuncios = useCallback((nomes) => {
+    updateCurrentBM({
+      anunciosOcultos: (bmStates[activeBM].anunciosOcultos || []).filter(n => !nomes.includes(n)),
     });
   }, [updateCurrentBM, bmStates, activeBM]);
 
@@ -420,6 +436,9 @@ export function AppProvider({ children }) {
     campanhasOcultas,
     ocultarCampanhas,
     restaurarCampanhas,
+    anunciosOcultos,
+    ocultarAnuncios,
+    restaurarAnuncios,
     weeklyData,
     weeklyAdsData,
     imports,
