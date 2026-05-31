@@ -242,7 +242,12 @@ export function parseMetaCSV(rawText, bmContext = {}) {
   const rows = result.data
     .filter(row => {
       // Filtra linhas totalizadoras (geralmente têm "Total" no nome)
-      const name = String(row[headers[columnMap.campaignName]] || '').trim();
+      // Aceita tanto campaignName (nível campanha) quanto adName (nível anúncio)
+      const campName = String(row[headers[columnMap.campaignName]] || '').trim();
+      const adName   = columnMap.adName !== undefined
+        ? String(row[headers[columnMap.adName]] || '').trim()
+        : '';
+      const name = campName || adName;
       return name && !name.toLowerCase().includes('total');
     })
     .map(row => {
@@ -251,7 +256,7 @@ export function parseMetaCSV(rawText, bmContext = {}) {
       headers.forEach((h, i) => { mapped[h] = row[h]; });
       return parseRow(mapped, columnMap, headers, bmContext);
     })
-    .filter(row => row.campaignName && row.spend >= 0);
+    .filter(row => (row.campaignName || row.adName) && row.spend >= 0);
 
   return { rows, columnMap, headers, missingCritical, separator };
 }
